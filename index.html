@@ -597,6 +597,25 @@ body{
   background:#f0f0f0;border-radius:6px;padding:4px 10px;
   font-size:.6rem;font-weight:700;color:var(--ink3);letter-spacing:.05em;
 }
+
+/* ══ DARK MODE FIX (auto-detecta preferencia del navegador) ══ */
+@media (prefers-color-scheme: dark) {
+  #splash {
+    background: #1a1a1a !important;
+  }
+  .sp-tagline {
+    color: #888 !important;
+  }
+  .topnav {
+    background: #1a1a1a !important;
+    border-bottom-color: rgba(255,255,255,.08) !important;
+  }
+  .search-ov {
+    background: #1a1a1a !important;
+    border-bottom-color: rgba(255,255,255,.08) !important;
+  }
+}
+
 </style>
 </head>
 <body>
