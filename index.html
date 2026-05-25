@@ -1117,11 +1117,40 @@ function renderCart(){
     </div>
   `).join('');
 }
+function genOrderId(){
+  // Formato: SMJ-YYYYMMDD-XXX  (XXX = 3 dígitos aleatorios)
+  const d=new Date();
+  const yyyy=d.getFullYear();
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const dd=String(d.getDate()).padStart(2,'0');
+  const rand=String(Math.floor(Math.random()*900)+100); // 100-999
+  return `SMJ-${yyyy}${mm}${dd}-${rand}`;
+}
 function sendCartWA(){
   if(cartItems.length===0) return;
-  let msg = '¡Hola Samjuro Japan! 👋 Me gustaría hacer el siguiente pedido:\n\n';
-  cartItems.forEach((item,i)=>{ msg+=`${i+1}. ${item.brand} — ${item.name} (${item.variant})${item.qty>1?' x'+item.qty:''}\n`; });
-  msg += '\n¿Me pueden confirmar disponibilidad y precio? 😊';
+
+  const orderId = genOrderId();
+  const fecha = new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'});
+  const totalUnidades = cartItems.reduce((s,it)=>s+(it.qty||1),0);
+
+  let msg  = '¡Buen día, equipo de Samjuro Japan! 👋\n\n';
+  msg += `Soy un cliente interesado en cotizar el siguiente pedido:\n\n`;
+  msg += `🧾 *Pedido:* ${orderId}\n`;
+  msg += `📅 *Fecha:* ${fecha}\n`;
+  msg += `🛒 *Origen:* Catálogo móvil (catalogo.samjuro.com.co)\n\n`;
+  msg += `*Productos solicitados (${cartItems.length} ítem${cartItems.length>1?'s':''}, ${totalUnidades} unidad${totalUnidades>1?'es':''}):*\n`;
+
+  cartItems.forEach((item,i)=>{
+    const ref = item.ref || item.sku || item.code || `ID-${item.id ?? '—'}`;
+    const qty = item.qty>1 ? ` ×${item.qty}` : '';
+    msg += `${i+1}. ${item.brand} — ${item.name}\n`;
+    msg += `   • Presentación: ${item.variant}${qty}\n`;
+    msg += `   • Ref: ${ref}\n`;
+  });
+
+  msg += `\n¿Me pueden confirmar disponibilidad, precio mayorista y tiempos de entrega? 🙏\n\n`;
+  msg += `Quedo atento(a) a su respuesta. ¡Gracias!`;
+
   window.open('https://wa.me/573178012562?text='+encodeURIComponent(msg),'_blank');
 }
 
@@ -1239,10 +1268,6 @@ function confirmWompiPay(){
     </div>
     <div class="cart-footer" id="cartFooter" style="display:none">
       <div class="cart-actions">
-        <button class="cart-pay" onclick="openWompi()">
-          💳 Pagar ahora
-        </button>
-        <div class="cart-divider">o</div>
         <button class="cart-wa" onclick="sendCartWA()">
           💬 Cotizar por WhatsApp
         </button>
