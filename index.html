@@ -742,14 +742,7 @@ body{
   <div id="catalog">
     <div class="filters" id="filterRow">
       <button class="fp on" onclick="setF(this,'todas')">Todos</button>
-      <button class="fp" onclick="setF(this,'esmalte')">Esmaltes</button>
-      <button class="fp" onclick="setF(this,'base')">Bases</button>
-      <button class="fp" onclick="setF(this,'tratamiento')">Tratamientos</button>
-      <button class="fp" onclick="setF(this,'removedor')">Removedores</button>
-      <button class="fp" onclick="setF(this,'lima')">Limas</button>
-      <button class="fp" onclick="setF(this,'maquillaje')">Maquillaje</button>
-      <button class="fp" onclick="setF(this,'tinte')">Tintes</button>
-      <button class="fp" onclick="setF(this,'cabello')">Cabello</button>
+      <!-- Los demás botones se generan dinámicamente desde Supabase según la marca activa -->
     </div>
     <div class="pgrid" id="productGrid"></div>
 
@@ -871,7 +864,7 @@ let P = [];   // Tarjetas agrupadas que ve el cliente en el grid
 let PI = [];  // Productos individuales completos (con presentaciones, colores hex, etc.)
 
 // Mapeo de slugs de colección/categoría → metadata visual de tarjeta
-function mapearTarjeta(coleccion, marca, categoria, productos){
+function mapearTarjeta(coleccion, marca, categoria, productos, categoria_slug){
   // Determina la imagen base según el tipo
   let imgsKey = 'esmalte';
   const catLow = (categoria || '').toLowerCase();
@@ -882,16 +875,12 @@ function mapearTarjeta(coleccion, marca, categoria, productos){
   else if (catLow.includes('shampoo') || catLow.includes('alisado') || catLow.includes('tratamient')) imgsKey = 'cabello';
   else if (catLow.includes('lima')) imgsKey = 'lima';
 
-  // Determina filtros (cats)
+  // Determina filtros (cats) usando el slug REAL de la categoría desde Supabase
+  // Esto reemplaza la lógica hardcodeada anterior que solo reconocía 8 categorías genéricas
   const cats = ['todas'];
-  if (catLow.includes('esmalte')) cats.push('esmalte');
-  if (catLow.includes('base')) cats.push('base');
-  if (catLow.includes('tratamient')) cats.push('tratamiento');
-  if (catLow.includes('removed')) cats.push('removedor');
-  if (catLow.includes('tinte') || catLow.includes('color') || catLow.includes('amoniaco') || catLow.includes('tono')) {
-    cats.push('tinte'); cats.push('cabello');
+  if (categoria_slug) {
+    cats.push(categoria_slug);
   }
-  if (catLow.includes('shampoo') || catLow.includes('alisado')) cats.push('cabello');
 
   // Variantes: los primeros 4 nombres de productos de la colección
   const vars = productos.slice(0, 4).map(p => {
@@ -969,7 +958,7 @@ async function loadFromSupabase(){
     let id = 0;
     P = [];
     grupos.forEach(grupo => {
-      const tarjeta = mapearTarjeta(grupo.coleccion, grupo.marca, grupo.categoria, grupo.productos);
+      const tarjeta = mapearTarjeta(grupo.coleccion, grupo.marca, grupo.categoria, grupo.productos, grupo.categoria_slug);
       const titulo = grupo.coleccion
         ? `${grupo.categoria} — ${grupo.coleccion}`
         : grupo.categoria;
@@ -992,10 +981,13 @@ async function loadFromSupabase(){
         coleccion: grupo.coleccion,
         coleccion_slug: grupo.coleccion_slug,
         categoria_slug: grupo.categoria_slug,
+        categoria_nombre: grupo.categoria,  // Necesario para renderizar filtros dinámicos
         wide: grupo.productos.length >= 8  // tarjeta ancha si tiene muchos productos
       });
     });
 
+    // Generar filtros de categoría según las categorías reales cargadas
+    renderCategoryFilters();
     // Render inicial
     applyFilters();
     console.log(`✅ Catálogo cargado: ${P.length} tarjetas agrupadas, ${PI.length} productos individuales`);
@@ -1071,8 +1063,45 @@ function filterBrand(brand,el){
   document.querySelectorAll('.bp').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
   activeBrand=brand;
+  // Al cambiar marca, regenerar filtros de categoría y resetear filtro activo
+  activeFilter='todas';
+  renderCategoryFilters();
   applyFilters();
 }
+
+// NUEVA FUNCIÓN: Genera dinámicamente los botones de categorías
+// según la marca activa. Si es "todas", muestra las 25 categorías.
+// Si es CHECO, solo las 15 categorías de CHECO. Si es MATIZZE, solo las 10.
+function renderCategoryFilters(){
+  const filterRow = document.getElementById('filterRow');
+  if (!filterRow) return;
+
+  // Filtrar tarjetas según marca activa para extraer categorías únicas
+  const tarjetasFiltradas = activeBrand === 'todas'
+    ? P
+    : P.filter(p => p.brand === activeBrand);
+
+  // Extraer categorías únicas (slug + nombre) preservando el orden de aparición
+  const categoriasMap = new Map(); // slug → nombre
+  tarjetasFiltradas.forEach(t => {
+    if (t.categoria_slug && t.categoria_nombre && !categoriasMap.has(t.categoria_slug)) {
+      categoriasMap.set(t.categoria_slug, t.categoria_nombre);
+    }
+  });
+
+  // Ordenar alfabéticamente por nombre para consistencia
+  const categoriasOrdenadas = Array.from(categoriasMap.entries())
+    .sort((a, b) => a[1].localeCompare(b[1], 'es'));
+
+  // Construir HTML: botón "Todos" siempre primero + un botón por categoría
+  let html = `<button class="fp${activeFilter==='todas'?' on':''}" onclick="setF(this,'todas')">Todos</button>`;
+  categoriasOrdenadas.forEach(([slug, nombre]) => {
+    const activo = activeFilter === slug ? ' on' : '';
+    html += `<button class="fp${activo}" onclick="setF(this,'${slug}')">${nombre}</button>`;
+  });
+  filterRow.innerHTML = html;
+}
+
 function applyFilters(){
   renderGrid(P.filter(p=>{
     const bOk=activeBrand==='todas'||p.brand===activeBrand;
@@ -1094,16 +1123,63 @@ function doSearch(q){
   const cat=document.getElementById('catalog');
   if(!t){res.style.display='none';cat.style.display='block';return;}
   res.style.display='block';cat.style.display='none';
-  const found=P.filter(p=>
-    p.name.toLowerCase().includes(t)||p.brandLabel.toLowerCase().includes(t)||
-    p.desc.toLowerCase().includes(t)||p.cats.some(c=>c.includes(t))||
-    p.vars.some(v=>v.toLowerCase().includes(t))
-  );
+
+  // NUEVO BUSCADOR PROFUNDO: busca en los 358 productos individuales (PI)
+  // en todos los campos relevantes, no solo en las tarjetas agrupadas (P)
+  const matchProducto = (prod) => {
+    if (!prod) return false;
+    // Buscar en nombre
+    if (prod.nombre && prod.nombre.toLowerCase().includes(t)) return true;
+    // Buscar en SKU
+    if (prod.sku && prod.sku.toLowerCase().includes(t)) return true;
+    // Buscar en descripción corta
+    if (prod.descripcion_corta && prod.descripcion_corta.toLowerCase().includes(t)) return true;
+    // Buscar en descripción larga
+    if (prod.descripcion_larga && prod.descripcion_larga.toLowerCase().includes(t)) return true;
+    // Buscar en características (es un array)
+    if (prod.caracteristicas && Array.isArray(prod.caracteristicas)) {
+      if (prod.caracteristicas.some(c => c && c.toLowerCase().includes(t))) return true;
+    }
+    // Buscar en colección (texto)
+    if (prod.coleccion && prod.coleccion.toLowerCase().includes(t)) return true;
+    // Buscar en categoría (texto)
+    if (prod.categoria && prod.categoria.toLowerCase().includes(t)) return true;
+    // Buscar en marca (texto)
+    if (prod.marca && prod.marca.toLowerCase().includes(t)) return true;
+    // Buscar en badges (array)
+    if (prod.badges && Array.isArray(prod.badges)) {
+      if (prod.badges.some(b => b && b.toLowerCase().includes(t))) return true;
+    }
+    return false;
+  };
+
+  // 1. Buscar IDs de productos individuales que coinciden
+  const idsProductosCoincidentes = new Set();
+  PI.forEach(prod => {
+    if (matchProducto(prod)) {
+      idsProductosCoincidentes.add(prod.id);
+    }
+  });
+
+  // 2. Encontrar las tarjetas (P) que contienen al menos un producto coincidente
+  //    + las que coinciden por su propio nombre/descripción
+  const found = P.filter(tarjeta => {
+    // Coincidencia en la tarjeta misma
+    if (tarjeta.name && tarjeta.name.toLowerCase().includes(t)) return true;
+    if (tarjeta.brandLabel && tarjeta.brandLabel.toLowerCase().includes(t)) return true;
+    if (tarjeta.desc && tarjeta.desc.toLowerCase().includes(t)) return true;
+    // Coincidencia en alguno de los productos internos de la tarjeta
+    if (tarjeta.productosInternos && Array.isArray(tarjeta.productosInternos)) {
+      if (tarjeta.productosInternos.some(pid => idsProductosCoincidentes.has(pid))) return true;
+    }
+    return false;
+  });
+
   document.getElementById('searchTitle').textContent=
     found.length?`${found.length} resultado${found.length!==1?'s':''} · "${q}"`:'Sin resultados';
   document.getElementById('searchGrid').innerHTML=
     found.length ? found.map(makeCard).join('') :
-    `<div class="s-empty"><strong>No encontrado</strong>Prueba: tinte, esmalte, base, lima…</div>`;
+    `<div class="s-empty"><strong>No encontrado</strong>Prueba: ajo, antibacterial, hidratante, top coat…</div>`;
 }
 function clearSearch(){
   document.getElementById('searchInp').value='';
