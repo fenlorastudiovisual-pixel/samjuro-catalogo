@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Samjuro Japan S.A.S — Distribuidora de Belleza</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Syne:wght@500;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -344,6 +345,52 @@ body{
 }
 .lb-cart.ok{background:#1F6B3A}
 .pb{padding-bottom:22px}
+
+/* ══ TONOS DE COLECCIÓN (chips de color hex) ══ */
+.tone-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+  margin:14px 0 6px;
+}
+.tone-card{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:10px 6px;border-radius:12px;
+  background:var(--white);border:1px solid #EEE;
+  cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;
+}
+.tone-card:active{transform:scale(.96)}
+.tone-card:hover{border-color:var(--red);box-shadow:0 4px 12px rgba(179,27,27,.12)}
+.tone-card.selected{border-color:var(--red);background:#FFF8F8}
+.tone-chip{
+  width:40px;height:40px;border-radius:50%;
+  border:2px solid #FFF;box-shadow:0 0 0 1px #DDD,0 2px 6px rgba(0,0,0,.08);
+}
+.tone-name{
+  font-size:.65rem;font-weight:600;color:var(--ink);
+  text-align:center;line-height:1.2;
+  overflow:hidden;text-overflow:ellipsis;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  min-height:1.5em;
+}
+.tone-sku{font-size:.55rem;color:var(--ink3);letter-spacing:.04em}
+
+/* ══ LOADER (mientras carga Supabase) ══ */
+.cat-loader{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;padding:60px 20px;color:var(--ink2);
+}
+.cat-loader-spin{
+  width:36px;height:36px;border-radius:50%;
+  border:3px solid rgba(179,27,27,.15);border-top-color:var(--red);
+  animation:catSpin .8s linear infinite;
+}
+@keyframes catSpin{to{transform:rotate(360deg)}}
+.cat-loader-txt{font-size:.78rem;font-weight:500;letter-spacing:.05em}
+.cat-error{
+  padding:30px 20px;text-align:center;color:var(--ink2);
+}
+.cat-error-icon{font-size:2rem;margin-bottom:10px}
+.cat-error-msg{font-size:.85rem;font-weight:500;color:var(--red)}
+.cat-error-hint{font-size:.72rem;margin-top:6px;color:var(--ink3)}
 
 /* ══ PEDIDO PANEL ══ */
 #cartPanel{
@@ -806,40 +853,166 @@ const IMG = {
   ]
 };
 
-const P=[
-  {id:0,brand:'checo',brandLabel:'CHECO',name:'Esmalte Efecto Gel',cats:['esmalte','todas'],stars:5,reviews:312,price:'Consultar',desc:'Colección Efecto Gel de CHECO. Acabado brillante de larga duración. 19 Free. Más de 200 colores.',vars:['Colección Clásica','Colección Cristal','Colección Nude','Colección Glitter'],tag:'ttop',tagLabel:'Top',imgs:IMG.esmalte,wide:true},
-  {id:1,brand:'checo',brandLabel:'CHECO',name:'Esmalte Colección Cristal',cats:['esmalte','todas'],stars:5,reviews:178,price:'Consultar',desc:'Tonos 122-129. Zafiro, Onix, Jade, Cristal Roca, Circón Rosa, Cuarzo Rosa, Ámbar, Amatista.',vars:['Zafiro 122','Onix 123','Jade 124','Cuarzo Rosa 127'],tag:'tnew',tagLabel:'Nuevo',imgs:IMG.esmalte},
-  {id:2,brand:'checo',brandLabel:'CHECO',name:'Esmalte Colección Glitter',cats:['esmalte','todas'],stars:4,reviews:95,price:'Consultar',desc:'Glitter para uñas CHECO Nails. 5g. Metal Rosa, Rosa, Plata, Cobre. Tonos 216-223.',vars:['Metal Rosa','Rosa','Plata','Cobre'],tag:'tnew',tagLabel:'Nuevo',imgs:IMG.esmalte},
-  {id:3,brand:'checo',brandLabel:'CHECO',name:'Base de Vitamina E',cats:['base','tratamiento','todas'],stars:5,reviews:210,price:'Consultar',desc:'Protege de los rayos UV. Protege de la resequedad. Nutre e hidrata la uña.',vars:['14 ml'],tag:'ttop',tagLabel:'Top',imgs:IMG.base},
-  {id:4,brand:'checo',brandLabel:'CHECO',name:'Base de Calcio',cats:['base','tratamiento','todas'],stars:5,reviews:189,price:'Consultar',desc:'Evita roturas. Fortalece. Endurece y sella la lámina de la uña.',vars:['14 ml'],tag:'ttop',tagLabel:'Top',imgs:IMG.base},
-  {id:5,brand:'checo',brandLabel:'CHECO',name:'Base de Ajo',cats:['base','tratamiento','todas'],stars:4,reviews:134,price:'Consultar',desc:'Ayuda al engrosamiento de las uñas. Activa el crecimiento. Fortalece.',vars:['14 ml'],tag:'tpro',tagLabel:'Natural',imgs:IMG.base},
-  {id:6,brand:'checo',brandLabel:'CHECO',name:'Base de Limón',cats:['base','tratamiento','todas'],stars:4,reviews:112,price:'Consultar',desc:'Descongestiona la lámina de la uña. Promueve el crecimiento. Suaviza.',vars:['14 ml'],tag:'tpro',tagLabel:'Natural',imgs:IMG.base},
-  {id:7,brand:'checo',brandLabel:'CHECO',name:'Uñas de Roble — Baba de Caracol',cats:['tratamiento','base','todas'],stars:5,reviews:267,price:'Consultar',desc:'Base endurecedora. Evita uñas quebradizas y estrías. Endurece y da brillo. Con extracto de Baba de Caracol. 14 ml.',vars:['14 ml'],tag:'ttop',tagLabel:'Top',imgs:IMG.tratamiento,wide:true},
-  {id:8,brand:'checo',brandLabel:'CHECO',name:'Proteína para Uñas',cats:['tratamiento','todas'],stars:5,reviews:198,price:'Consultar',desc:'Calcio + Proteína de leche. Fortalece la keratina. Nutre, humecta y alimenta. Con Omega 3 y Filtro UV.',vars:['14 ml'],tag:'tpro',tagLabel:'Tratam.',imgs:IMG.tratamiento},
-  {id:9,brand:'checo',brandLabel:'CHECO',name:'Post Acrílico — Regenerador',cats:['tratamiento','todas'],stars:5,reviews:156,price:'Consultar',desc:'Tratamiento Regenerador de uñas dañadas por sistemas semipermanentes o acrílicos. Con Caviar y Pantenol / Vitamina B5.',vars:['Base Color','Transparente'],tag:'tnew',tagLabel:'Nuevo',imgs:IMG.tratamiento},
-  {id:10,brand:'checo',brandLabel:'CHECO',name:'Sérum Hidratante Niacinamida',cats:['tratamiento','todas'],stars:5,reviews:143,price:'Consultar',desc:'Niacinamida · Ácido Hialurónico · Aloe Vera · Vitamina E y C · Aceite de Almendras. 30 ml.',vars:['30 ml'],tag:'tnew',tagLabel:'Nuevo',imgs:IMG.tratamiento},
-  {id:11,brand:'checo',brandLabel:'CHECO',name:'Removedor Esmalte Sin Acetona',cats:['removedor','todas'],stars:5,reviews:221,price:'Consultar',desc:'Con aceite mineral y lanolina. No deshidrata la cutícula. Libre de Acetonas. Disponible en tono morado.',vars:['30 ml','70 ml','250 ml','500 ml','1750 ml','3750 ml'],tag:'tpro',tagLabel:'Sin Acetona',imgs:IMG.removedor,wide:true},
-  {id:12,brand:'checo',brandLabel:'CHECO',name:'Removedor de Cutícula',cats:['removedor','todas'],stars:4,reviews:167,price:'Consultar',desc:'Sustancias alcalinas que protegen la piel. Facilita la remoción de excesos de cutícula.',vars:['60 ml','250 ml','500 ml','1750 ml','3750 ml'],tag:'tpro',tagLabel:'Profesional',imgs:IMG.removedor},
-  {id:13,brand:'checo',brandLabel:'CHECO',name:'Removedor Semipermanente y Acrílico',cats:['removedor','todas'],stars:5,reviews:189,price:'Consultar',desc:'100% Libre de Acetona y Metanol. Para uñas Semipermanentes, Acrílicas y Tradicionales. CHECO Nails. 250 ml.',vars:['250 ml'],tag:'tpro',tagLabel:'Sin Acetona',imgs:IMG.removedor},
-  {id:14,brand:'checo',brandLabel:'CHECO',name:'Lima Personal 180/120',cats:['lima','todas'],stars:4,reviews:98,price:'Consultar',desc:'Lima personal para desbastar y dar forma. Gramaje 180/120. Azul y Negro. 12 / 144 Unidades.',vars:['12 unidades','144 unidades'],tag:'tpro',tagLabel:'Profesional',imgs:IMG.lima},
-  {id:15,brand:'checo',brandLabel:'CHECO',name:'Lima Omega 13cm',cats:['lima','todas'],stars:4,reviews:76,price:'Consultar',desc:'Lima Omega de 13 cm. Gramaje 120/180. 12 / 144 Unidades. Empaque individual.',vars:['12 unidades','144 unidades'],tag:'tpro',tagLabel:'Profesional',imgs:IMG.lima},
-  {id:16,brand:'checo',brandLabel:'CHECO',name:'Lima Profesional Lavable',cats:['lima','todas'],stars:5,reviews:134,price:'Consultar',desc:'Amigable con el medio ambiente. Se puede lavar y esterilizar con alcohol. Azul/Negro 180/150. 10 Unidades.',vars:['10 unidades'],tag:'tpro',tagLabel:'Eco',imgs:IMG.lima},
-  {id:17,brand:'checo',brandLabel:'CHECO',name:'Base Líquida Matte',cats:['maquillaje','todas'],stars:5,reviews:267,price:'Consultar',desc:'Acabado matte natural. No obstruye poros. Filtro solar. Aceite de Macadamia y Jojoba. Aloe Vera. Libre de parabenos. Cruelty Free. 22 g.',vars:['Beige','Translúcido','Natural','Almendra','Arena','Doré'],tag:'ttop',tagLabel:'Top',imgs:IMG.maquillaje,wide:true},
-  {id:18,brand:'checo',brandLabel:'CHECO',name:'Primer Fijador Hidratante',cats:['maquillaje','todas'],stars:5,reviews:198,price:'Consultar',desc:'Piel de Porcelana. Efecto anti-edad. Mejora la textura. Cubre poros dilatados. Fijador con microesferas. 20 g.',vars:['20 g'],tag:'tnew',tagLabel:'Nuevo',imgs:IMG.maquillaje},
-  {id:19,brand:'checo',brandLabel:'CHECO',name:'Delineado Perfecto',cats:['maquillaje','todas'],stars:4,reviews:143,price:'Consultar',desc:'Negro Matte e intenso. Flujo de tinta perfecto. Disponible en color negro.',vars:['Negro'],tag:'tpro',tagLabel:'Profesional',imgs:IMG.maquillaje},
-  {id:20,brand:'checo',brandLabel:'CHECO',name:'Espuma Facial Rosas Blancas',cats:['maquillaje','tratamiento','todas'],stars:5,reviews:176,price:'Consultar',desc:'Hidratante facial. Niacinamida · Rosas Blancas · Arroz · Pepino · Aloe Vera. Sin parabenos. Vegana. 120 ml.',vars:['120 ml'],tag:'tnew',tagLabel:'Nuevo',imgs:IMG.maquillaje},
-  {id:21,brand:'checo',brandLabel:'CHECO',name:'Perfeccionador de Cejas Universal',cats:['maquillaje','todas'],stars:5,reviews:134,price:'Consultar',desc:'Alta cobertura. Acabado natural. A prueba de agua. Sin parabenos. Con pantenol y pigmentos minerales. Tono 4 Brown. 5 g.',vars:['Tono 4 Brown'],tag:'tpro',tagLabel:'Profesional',imgs:IMG.maquillaje},
-  {id:22,brand:'checo',brandLabel:'CHECO',name:'Perfilador de Cejas Vit. E',cats:['maquillaje','todas'],stars:4,reviews:112,price:'Consultar',desc:'Trazo fino preciso. Color intenso. Larga Duración. Vitamina E y C. Con Aplicador.',vars:['Dark Brown','Café Claro'],tag:'tpro',tagLabel:'Profesional',imgs:IMG.maquillaje},
-  {id:23,brand:'checo',brandLabel:'CHECO',name:'Aceite para Cutícula',cats:['tratamiento','todas'],stars:5,reviews:198,price:'Consultar',desc:'Aceites que nutren y fortalecen. Maracuyá, Sandía, Almendra, Coco, Uva. Evita padrastros.',vars:['Maracuyá','Sandía','Almendra','Coco','Uva'],tag:'tpro',tagLabel:'Natural',imgs:IMG.tratamiento},
-  {id:24,brand:'checo',brandLabel:'CHECO',name:'Mantequilla Corporal Humectante',cats:['tratamiento','todas'],stars:5,reviews:145,price:'Consultar',desc:'Maracuyá · Cánnabis · Coco · Uva · Aloe Vera · Pepino · Malva. Hidrata y cuida la piel. 200 g.',vars:['200 g'],tag:'tnew',tagLabel:'Nuevo',imgs:IMG.tratamiento},
-  {id:25,brand:'checo',brandLabel:'CHECO',name:'Ablandador de Callos',cats:['tratamiento','todas'],stars:4,reviews:123,price:'Consultar',desc:'Fórmula emoliente. Repara piel muerta. Suaviza asperezas de manos y pies. Con glicerina.',vars:['60 ml','250 ml','500 ml','1750 ml','3750 ml'],tag:'tpro',tagLabel:'Profesional',imgs:IMG.tratamiento},
-  {id:26,brand:'matizze',brandLabel:'MATIZZE',name:'Tinte Permanente Profesional',cats:['tinte','cabello','todas'],stars:5,reviews:287,price:'Consultar',desc:'Tinte permanente profesional MATIZZE. Cobertura total de canas. Hidrata y nutre el cabello. Amplia carta de colores.',vars:['Negro','Castaño Oscuro','Castaño Medio','Rubio Oscuro','Rubio Dorado','Rojo'],tag:'tmat',tagLabel:'MATIZZE',imgs:IMG.tinte,wide:true},
-  {id:27,brand:'matizze',brandLabel:'MATIZZE',name:'Tinte Semi-Permanente',cats:['tinte','cabello','todas'],stars:5,reviews:213,price:'Consultar',desc:'Semi-permanente de alta durabilidad. Sin amoniaco. Nutre e hidrata mientras colorea. Tonos vibrantes.',vars:['Varios tonos disponibles'],tag:'tmat',tagLabel:'MATIZZE',imgs:IMG.tinte},
-  {id:28,brand:'matizze',brandLabel:'MATIZZE',name:'Matizador Profesional',cats:['tinte','cabello','tratamiento','todas'],stars:5,reviews:198,price:'Consultar',desc:'Para cabellos con decoloración o mechas. Neutraliza tonos no deseados. Aporta brillo y suavidad.',vars:['Violeta','Plateado','Azul','Cobre'],tag:'tmat',tagLabel:'MATIZZE',imgs:IMG.tinte},
-  {id:29,brand:'matizze',brandLabel:'MATIZZE',name:'Tratamiento Capilar Hidratante',cats:['cabello','tratamiento','todas'],stars:5,reviews:176,price:'Consultar',desc:'Hidratación profunda para todo tipo de cabello. Repara el cabello dañado por procesos químicos.',vars:['250 ml','500 ml','1000 ml'],tag:'tmat',tagLabel:'MATIZZE',imgs:IMG.cabello},
-  {id:30,brand:'matizze',brandLabel:'MATIZZE',name:'Shampoo Profesional',cats:['cabello','todas'],stars:4,reviews:145,price:'Consultar',desc:'Limpieza profunda sin dañar la fibra capilar. Prepara el cabello para los tratamientos.',vars:['250 ml','500 ml','1000 ml'],tag:'tmat',tagLabel:'MATIZZE',imgs:IMG.cabello},
-  {id:31,brand:'matizze',brandLabel:'MATIZZE',name:'Oxidante Profesional',cats:['tinte','cabello','todas'],stars:5,reviews:167,price:'Consultar',desc:'Oxidante en crema para uso profesional. Vol. 10, 20, 30 y 40. Activa el color uniformemente.',vars:['Vol. 10','Vol. 20','Vol. 30','Vol. 40'],tag:'tmat',tagLabel:'MATIZZE',imgs:IMG.tinte},
-];
+
+// ══════════════════════════════════════════════════════════════════
+// CONFIGURACIÓN SUPABASE — Catálogo Samjuro
+// ══════════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://ubisgeycyoctavcsvcgx.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_e9Lhzf9Mtj_E7ogWFfkfhw_PQfskONJ';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// ══════════════════════════════════════════════════════════════════
+// ARRAYS DEL CATÁLOGO
+// ══════════════════════════════════════════════════════════════════
+// P  → 32 tarjetas agrupadas (vista principal) — se generan dinámicamente
+// PI → 305 productos individuales (para vista detalle de tonos)
+// ══════════════════════════════════════════════════════════════════
+let P = [];   // Tarjetas agrupadas que ve el cliente en el grid
+let PI = [];  // Productos individuales completos (con presentaciones, colores hex, etc.)
+
+// Mapeo de slugs de colección/categoría → metadata visual de tarjeta
+function mapearTarjeta(coleccion, marca, categoria, productos){
+  // Determina la imagen base según el tipo
+  let imgsKey = 'esmalte';
+  const catLow = (categoria || '').toLowerCase();
+  if (catLow.includes('base')) imgsKey = 'base';
+  else if (catLow.includes('tratamiento')) imgsKey = 'tratamiento';
+  else if (catLow.includes('removed')) imgsKey = 'removedor';
+  else if (catLow.includes('tinte') || catLow.includes('color') || catLow.includes('amoniaco') || catLow.includes('tono')) imgsKey = 'tinte';
+  else if (catLow.includes('shampoo') || catLow.includes('alisado') || catLow.includes('tratamient')) imgsKey = 'cabello';
+  else if (catLow.includes('lima')) imgsKey = 'lima';
+
+  // Determina filtros (cats)
+  const cats = ['todas'];
+  if (catLow.includes('esmalte')) cats.push('esmalte');
+  if (catLow.includes('base')) cats.push('base');
+  if (catLow.includes('tratamient')) cats.push('tratamiento');
+  if (catLow.includes('removed')) cats.push('removedor');
+  if (catLow.includes('tinte') || catLow.includes('color') || catLow.includes('amoniaco') || catLow.includes('tono')) {
+    cats.push('tinte'); cats.push('cabello');
+  }
+  if (catLow.includes('shampoo') || catLow.includes('alisado')) cats.push('cabello');
+
+  // Variantes: los primeros 4 nombres de productos de la colección
+  const vars = productos.slice(0, 4).map(p => {
+    // De "Esmalte #88 Amor" extrae "Amor"
+    const m = p.nombre.match(/#?\d+\s*(.+?)(\s*\(.*\))?$/);
+    return m ? m[1].trim() : p.nombre;
+  });
+
+  // Badge según primer producto con badge
+  let tag = 'tpro', tagLabel = marca;
+  const conBadge = productos.find(p => p.badges && p.badges.length > 0);
+  if (conBadge) {
+    const b = conBadge.badges[0];
+    if (b.toLowerCase().includes('nuevo')) { tag = 'tnew'; tagLabel = 'Nuevo'; }
+    else if (b.toLowerCase().includes('top')) { tag = 'ttop'; tagLabel = 'Top'; }
+    else { tag = 'tpro'; tagLabel = b; }
+  } else if (productos.some(p => p.es_top)) {
+    tag = 'ttop'; tagLabel = 'Top';
+  } else if (marca === 'MATIZZE') {
+    tag = 'tmat'; tagLabel = 'MATIZZE';
+  }
+
+  return {
+    brand: marca.toLowerCase(),
+    brandLabel: marca,
+    cats: cats,
+    vars: vars.length ? vars : [coleccion || categoria],
+    tag: tag,
+    tagLabel: tagLabel,
+    imgs: IMG[imgsKey] || IMG.esmalte,
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CARGA INICIAL DESDE SUPABASE
+// ══════════════════════════════════════════════════════════════════
+async function loadFromSupabase(){
+  const gridEl = document.getElementById('productGrid');
+  if (gridEl) {
+    gridEl.innerHTML = '<div class="cat-loader"><div class="cat-loader-spin"></div><div class="cat-loader-txt">Cargando catálogo...</div></div>';
+  }
+
+  try {
+    const { data, error } = await sb
+      .from('productos_catalogo')
+      .select('*');
+
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error('Catálogo vacío');
+
+    // Guardamos los 305 productos individuales
+    PI = data;
+
+    // Agrupamos por (marca + categoría + colección) para construir las "tarjetas agrupadas"
+    const grupos = new Map();
+    data.forEach(prod => {
+      // Clave de agrupación: si tiene colección, agrupa por colección; si no, por categoría
+      const clave = prod.coleccion_slug
+        ? `${prod.marca_slug}|${prod.coleccion_slug}`
+        : `${prod.marca_slug}|cat-${prod.categoria_slug}`;
+      if (!grupos.has(clave)) {
+        grupos.set(clave, {
+          marca: prod.marca,
+          categoria: prod.categoria,
+          coleccion: prod.coleccion,
+          coleccion_slug: prod.coleccion_slug,
+          categoria_slug: prod.categoria_slug,
+          productos: []
+        });
+      }
+      grupos.get(clave).productos.push(prod);
+    });
+
+    // Convertimos los grupos en las 32+ tarjetas del array P
+    let id = 0;
+    P = [];
+    grupos.forEach(grupo => {
+      const tarjeta = mapearTarjeta(grupo.coleccion, grupo.marca, grupo.categoria, grupo.productos);
+      const titulo = grupo.coleccion
+        ? `${grupo.categoria} — ${grupo.coleccion}`
+        : grupo.categoria;
+      // Descripción: si la primera tiene desc_corta o desc_larga
+      const primerProd = grupo.productos[0];
+      const desc = primerProd.descripcion_corta
+        || (primerProd.descripcion_larga ? primerProd.descripcion_larga.substring(0, 180) + '...' : '')
+        || `${grupo.productos.length} producto(s) disponible(s) en esta colección.`;
+
+      P.push({
+        id: id++,
+        ...tarjeta,
+        name: titulo,
+        price: 'Consultar',
+        stars: 5,
+        reviews: grupo.productos.length * 10 + 50,  // pseudo-reviews proporcional
+        desc: desc,
+        // Guardamos los IDs de productos individuales que pertenecen a esta tarjeta
+        productosInternos: grupo.productos.map(p => p.id),
+        coleccion: grupo.coleccion,
+        coleccion_slug: grupo.coleccion_slug,
+        categoria_slug: grupo.categoria_slug,
+        wide: grupo.productos.length >= 8  // tarjeta ancha si tiene muchos productos
+      });
+    });
+
+    // Render inicial
+    applyFilters();
+    console.log(`✅ Catálogo cargado: ${P.length} tarjetas agrupadas, ${PI.length} productos individuales`);
+
+  } catch (err) {
+    console.error('Error cargando catálogo:', err);
+    if (gridEl) {
+      gridEl.innerHTML = `
+        <div class="cat-error">
+          <div class="cat-error-icon">⚠️</div>
+          <div class="cat-error-msg">No se pudo cargar el catálogo</div>
+          <div class="cat-error-hint">${err.message || 'Verifica tu conexión a internet'}</div>
+        </div>`;
+    }
+  }
+}
+
 
 // ── STATE ──
 let curSlide=0,lbFav=false,cartCount=0;
@@ -848,9 +1021,15 @@ let searchOpen=false;
 
 // ── SPLASH ──
 window.addEventListener('load',()=>{
+  // Disparar carga desde Supabase tan pronto como sea posible (en paralelo con el splash)
+  loadFromSupabase();
+
   setTimeout(()=>{
     document.getElementById('splash').classList.add('gone');
-    renderGrid(P);
+    // Si Supabase aún no terminó, el loader del catálogo se mostrará y aplicará filtros cuando termine
+    if (P.length > 0) {
+      applyFilters();
+    }
   },2500);
 });
 
@@ -990,14 +1169,60 @@ function openLB(idx){
   st+=`<span class="sc">(${p.reviews})</span>`;
   document.getElementById('lbStars').innerHTML=st;
   document.getElementById('lbDesc').textContent=p.desc;
-  document.getElementById('lbVars').innerHTML=
-    p.vars.map((v,i)=>`<div class="lv${i===0?' on':''}" onclick="selV(this)">${v}</div>`).join('');
+
+  // ── TONOS INDIVIDUALES (productos hijos con color_chip) ──
+  // Si la tarjeta tiene productosInternos (viene de Supabase), mostramos chips de color en lugar de las "vars"
+  const lbVarsEl = document.getElementById('lbVars');
+  if (p.productosInternos && p.productosInternos.length > 0 && PI.length > 0){
+    // Tomamos los productos individuales de esta colección
+    const productosIndividuales = PI.filter(pi => p.productosInternos.includes(pi.id));
+
+    // Verificamos si TIENEN colores hex (esmaltes, tintes, etc.)
+    const tienenColor = productosIndividuales.some(pi => {
+      const pres = pi.presentaciones && pi.presentaciones[0];
+      return pres && pres.color_chip;
+    });
+
+    if (tienenColor && productosIndividuales.length > 1){
+      // Renderizamos los tonos como chips de color hex
+      lbVarsEl.innerHTML = `<div class="tone-grid">` +
+        productosIndividuales.map((pi, i) => {
+          const pres = pi.presentaciones && pi.presentaciones[0];
+          const hex = pres && pres.color_chip ? pres.color_chip : 'B0BEC5';
+          // Extraer nombre corto del tono (sin "Esmalte #88")
+          const nombreLimpio = pi.nombre.replace(/^Esmalte\s*#?\d+\s*/, '').replace(/^Tinte\s+Matizze\s+/, '').replace(/^B\.Life\s+Color\s+/, 'B.Life ').replace(/^Tono\s+sobre\s+Tono\s+/, '');
+          // Extraer número/código del SKU
+          const codigo = pi.sku ? pi.sku.split('-').pop() : '';
+          return `<div class="tone-card" onclick="toggleToneSelect(this, '${pi.id}')">
+                    <div class="tone-chip" style="background:#${hex}"></div>
+                    <div class="tone-name">${nombreLimpio}</div>
+                    <div class="tone-sku">${codigo}</div>
+                  </div>`;
+        }).join('') +
+        `</div>`;
+    } else {
+      // No tienen colores → usar las vars normales
+      lbVarsEl.innerHTML = p.vars.map((v,i)=>`<div class="lv${i===0?' on':''}" onclick="selV(this)">${v}</div>`).join('');
+    }
+  } else {
+    // Tarjeta sin productosInternos → comportamiento original
+    lbVarsEl.innerHTML = p.vars.map((v,i)=>`<div class="lv${i===0?' on':''}" onclick="selV(this)">${v}</div>`).join('');
+  }
+
   document.getElementById('lbFavB').textContent=lbFav?'❤️':'🤍';
   const cb=document.getElementById('lbCartB');
   cb.innerHTML='🛒 Agregar al pedido';cb.classList.remove('ok');
   document.getElementById('lb').classList.add('open');
   document.body.style.overflow='hidden';
   document.getElementById('mainPage').style.overflow='hidden';
+}
+
+// Selección de tono individual (en chips de color)
+function toggleToneSelect(el, productoId){
+  document.querySelectorAll('.tone-card').forEach(t => t.classList.remove('selected'));
+  el.classList.add('selected');
+  // Guardamos el producto seleccionado en una variable global
+  window.tonoSeleccionado = productoId;
 }
 function closeLB(){
   document.getElementById('lb').classList.remove('open');
