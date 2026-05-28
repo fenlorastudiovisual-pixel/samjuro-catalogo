@@ -911,6 +911,32 @@ function mapearTarjeta(coleccion, marca, categoria, productos, categoria_slug){
 // ══════════════════════════════════════════════════════════════════
 // CARGA INICIAL DESDE SUPABASE
 // ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+// REALTIME (en vivo): escucha cambios en productos y marcas en Supabase.
+// Cuando algo cambia (alta/edición/borrado), recarga el catálogo solo,
+// sin que el usuario tenga que refrescar la página.
+// Requiere que las tablas tengan Realtime activado en Supabase.
+// ══════════════════════════════════════════════════════════════════
+let _realtimeActivo = false;
+let _recargaPendiente = null;
+function activarRealtime(){
+  if (_realtimeActivo) return; // evita suscribirse dos veces
+  _realtimeActivo = true;
+
+  // Pequeño retardo para agrupar varios cambios seguidos en una sola recarga
+  const recargarPronto = () => {
+    if (_recargaPendiente) clearTimeout(_recargaPendiente);
+    _recargaPendiente = setTimeout(() => { loadFromSupabase(); }, 600);
+  };
+
+  sb.channel('catalogo-cambios')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, recargarPronto)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'marcas' }, recargarPronto)
+    .subscribe((estado) => {
+      console.log('📡 Realtime:', estado);
+    });
+}
+
 async function loadFromSupabase(){
   const gridEl = document.getElementById('productGrid');
   if (gridEl) {
@@ -1003,6 +1029,9 @@ async function loadFromSupabase(){
     // Render inicial
     applyFilters();
     console.log(`✅ Catálogo cargado: ${P.length} tarjetas agrupadas, ${PI.length} productos individuales`);
+
+    // Activar actualización en tiempo real (solo una vez)
+    activarRealtime();
 
   } catch (err) {
     console.error('Error cargando catálogo:', err);
