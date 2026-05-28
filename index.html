@@ -716,19 +716,12 @@ body{
   <!-- MARCAS -->
   <div class="brand-sec">
     <div class="brand-sec-t">Nuestras Marcas</div>
-    <div class="brand-pills">
-      <div class="bp on" onclick="filterBrand('todas',this)">
+    <div class="brand-pills" id="brandPills">
+      <div class="bp on" data-brand="todas" onclick="filterBrand('todas',this)">
         <div class="bp-icon">✨</div>
-        <div><div class="bp-name">Todas</div><div class="bp-sub">2 marcas</div></div>
+        <div><div class="bp-name">Todas</div><div class="bp-sub" id="bpTodasSub">marcas</div></div>
       </div>
-      <div class="bp" onclick="filterBrand('checo',this)">
-        <div class="bp-icon">💅</div>
-        <div><div class="bp-name">CHECO</div><div class="bp-sub">Luz en ti</div></div>
-      </div>
-      <div class="bp" onclick="filterBrand('matizze',this)">
-        <div class="bp-icon">💈</div>
-        <div><div class="bp-name">MATIZZE</div><div class="bp-sub">Cabello</div></div>
-      </div>
+      <!-- Los pills de cada marca se generan dinámicamente desde Supabase -->
     </div>
   </div>
 
@@ -862,6 +855,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 // ══════════════════════════════════════════════════════════════════
 let P = [];   // Tarjetas agrupadas que ve el cliente en el grid
 let PI = [];  // Productos individuales completos (con presentaciones, colores hex, etc.)
+let MARCAS_META = {}; // Detalles de marca (emoji/eslogan/color/desc) leídos de la tabla marcas, indexados por slug
 
 // Mapeo de slugs de colección/categoría → metadata visual de tarjeta
 function mapearTarjeta(coleccion, marca, categoria, productos, categoria_slug){
@@ -986,6 +980,24 @@ async function loadFromSupabase(){
       });
     });
 
+    // ── MARCAS (Fase 4) ──
+    // La lista de marcas SIEMPRE sale de los productos ya cargados (no puede fallar).
+    // Aparte, intentamos enriquecerlas con emoji/eslogan/descripción de la tabla marcas.
+    // Si esa lectura falla (permisos), las marcas igual se muestran con valores por defecto.
+    try {
+      const { data: marcasData } = await sb.from('marcas').select('*');
+      if (marcasData) {
+        marcasData.forEach(m => {
+          const slug = (m.slug || m.nombre || '').toLowerCase();
+          if (slug) MARCAS_META[slug] = m;
+        });
+      }
+    } catch(e) {
+      console.warn('No se pudo leer la tabla marcas (se usarán valores por defecto):', e);
+    }
+    renderBrandPills();
+    renderProfileBrands();
+
     // Generar filtros de categoría según las categorías reales cargadas
     renderCategoryFilters();
     // Render inicial
@@ -1059,6 +1071,71 @@ function setF(btn,cat){
   activeFilter=cat;
   applyFilters();
 }
+// ══════════════════════════════════════════════════════════════════
+// MARCAS DINÁMICAS (Fase 4)
+// La lista de marcas se obtiene de los PRODUCTOS cargados, así que solo
+// aparecen marcas que tienen al menos 1 producto. Los datos bonitos
+// (emoji, eslogan, descripción) salen de MARCAS_META si están disponibles.
+// Al crear una marca con productos en el admin, aparece sola aquí.
+// ══════════════════════════════════════════════════════════════════
+function obtenerMarcasConProductos(){
+  // Recorre los productos individuales (PI) y arma una lista única de marcas.
+  const mapa = new Map(); // slug -> { slug, nombre }
+  PI.forEach(prod => {
+    const slug = (prod.marca_slug || '').toLowerCase();
+    if (!slug || mapa.has(slug)) return;
+    mapa.set(slug, { slug: slug, nombre: prod.marca || slug });
+  });
+  // Devuelve ordenado por nombre
+  return Array.from(mapa.values()).sort((a,b) => a.nombre.localeCompare(b.nombre));
+}
+
+function renderBrandPills(){
+  const cont = document.getElementById('brandPills');
+  if (!cont) return;
+  const marcas = obtenerMarcasConProductos();
+  // Subtítulo de "Todas" con el número real
+  const sub = document.getElementById('bpTodasSub');
+  if (sub) sub.textContent = marcas.length === 1 ? '1 marca' : `${marcas.length} marcas`;
+  // Quitar pills de marca anteriores (conserva "Todas")
+  cont.querySelectorAll('.bp[data-brand]:not([data-brand="todas"])').forEach(el => el.remove());
+  // Crear un pill por marca
+  marcas.forEach(marca => {
+    const meta = MARCAS_META[marca.slug] || {};
+    const emoji = meta.icono_emoji || '✨';
+    const eslogan = meta.eslogan || '';
+    const nombre = meta.nombre || marca.nombre;
+    const div = document.createElement('div');
+    div.className = 'bp';
+    div.setAttribute('data-brand', marca.slug);
+    div.setAttribute('onclick', `filterBrand('${marca.slug}',this)`);
+    div.innerHTML =
+      `<div class="bp-icon">${emoji}</div>` +
+      `<div><div class="bp-name">${nombre}</div>` +
+      `<div class="bp-sub">${eslogan}</div></div>`;
+    cont.appendChild(div);
+  });
+}
+
+function renderProfileBrands(){
+  const cont = document.getElementById('profBrands');
+  if (!cont) return;
+  cont.innerHTML = '';
+  obtenerMarcasConProductos().forEach(marca => {
+    const meta = MARCAS_META[marca.slug] || {};
+    const emoji = meta.icono_emoji || '✨';
+    const nombre = meta.nombre || marca.nombre;
+    const desc = meta.descripcion || '';
+    const card = document.createElement('div');
+    card.className = 'pb-card';
+    card.innerHTML =
+      `<div class="pb-logo">${emoji}</div>` +
+      `<div class="pb-name">${nombre}</div>` +
+      `<div class="pb-desc">${desc}</div>`;
+    cont.appendChild(card);
+  });
+}
+
 function filterBrand(brand,el){
   document.querySelectorAll('.bp').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
@@ -1615,17 +1692,8 @@ function confirmWompiPay(){
       </div>
       <div class="prof-section">
         <div class="prof-section-title">Nuestras Marcas</div>
-        <div class="prof-brands">
-          <div class="pb-card">
-            <div class="pb-logo">💅</div>
-            <div class="pb-name">CHECO</div>
-            <div class="pb-desc">Esmaltes, bases y tratamientos para uñas. 19 Free.</div>
-          </div>
-          <div class="pb-card">
-            <div class="pb-logo">💇</div>
-            <div class="pb-name">MATIZZE</div>
-            <div class="pb-desc">Tintes, matizadores y tratamientos capilares.</div>
-          </div>
+        <div class="prof-brands" id="profBrands">
+          <!-- Las tarjetas de marca se generan dinámicamente desde Supabase -->
         </div>
       </div>
       <div class="prof-section">
