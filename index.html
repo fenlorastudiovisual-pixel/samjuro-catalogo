@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="es" data-tema="crema">
+<html lang="es" data-tema="crema" data-tema-promos="editorial">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Samjuro Japan S.A.S — Distribuidora de Belleza</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Syne:wght@500;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Syne:wght@500;700;800&family=DM+Sans:wght@300;400;500;600&family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -691,64 +691,119 @@ html[data-tema="arena"]{
 html[data-tema="glam"] .tnew,
 html[data-tema="glam"] .ttop{color:#1a1206}
 
-/* ══ LIGHTBOX DE PROMOCIONES (Opción D) ══ */
+/* ══ LIGHTBOX DE PROMOCIONES — base (usa variables del tema activo) ══ */
+/* Valores por defecto = estilo EDITORIAL (claro, serif, elegante) */
 #promoLB{
   position:fixed; inset:0; z-index:300;
-  background:rgba(0,0,0,.66); backdrop-filter:blur(4px);
+  background:var(--plb-backdrop); backdrop-filter:blur(4px);
   display:none; align-items:flex-end; justify-content:center;
+  --plb-backdrop:rgba(40,30,28,.5);
+  --plb-card:#F8F4EF; --plb-head:#F8F4EF; --plb-head-deco:rgba(0,0,0,.035);
+  --plb-head-tx:#2A2320; --plb-head-tx2:#9c8e7d;
+  --plb-tx:#2A2320; --plb-tx2:#6a5d4f;
+  --plb-cardbg:#FFFFFF; --plb-line:#E3D8C9;
+  --plb-accent:#7A2E2E; --plb-accent2:#9c7b2e; --plb-on-accent:#F8F4EF;
+  --plb-title-font:'Cormorant Garamond',serif; --plb-title-w:600;
+  --plb-radius:6px; --plb-head-radius:20px 20px 0 0;
+  --plb-close-bg:transparent; --plb-close-tx:#5a4f45; --plb-close-bd:1px solid #d8cfc4;
+  --plb-chip-bd:#d8cfc4; --plb-chip-tx:#9c8e7d;
+  --plb-mtag-bg:rgba(255,255,255,.78); --plb-mtag-tx:#6a5d4f;
+  --plb-disc-bg:transparent; --plb-disc-tx:#7A2E2E; --plb-disc-bd:1px solid #7A2E2E; --plb-disc-shadow:none;
+  --plb-label-bg:transparent; --plb-label-bd:none;
+  --plb-btn-radius:0; --plb-btn-tt:uppercase; --plb-btn-ls:1.5px;
+  --plb-btn2-bg:transparent; --plb-btn2-bd:1px solid #2A2320; --plb-btn2-tx:#2A2320;
+  --plb-ph-checo:linear-gradient(150deg,#efe7da,#e0d2c0);
+  --plb-ph-matizze:linear-gradient(150deg,#f0ead8,#ded0b4);
 }
 #promoLB.open{display:flex; animation:promoFade .25s ease}
 @keyframes promoFade{from{opacity:0}to{opacity:1}}
 .plb-card{
   width:100%; max-width:480px; max-height:90vh;
-  background:#221518; border-radius:22px 22px 0 0;
+  background:var(--plb-card); border-radius:var(--plb-head-radius);
   display:flex; flex-direction:column; overflow:hidden;
   animation:plbUp .35s cubic-bezier(.2,.9,.25,1);
 }
 @keyframes plbUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.plb-head{position:relative; background:#B31B1B; padding:20px 18px 18px; overflow:hidden; flex-shrink:0}
-.plb-head::before,.plb-head::after{content:""; position:absolute; border-radius:50%; background:rgba(255,255,255,.07)}
+.plb-head{position:relative; background:var(--plb-head); padding:22px 20px 18px; overflow:hidden; flex-shrink:0}
+.plb-head::before,.plb-head::after{content:""; position:absolute; border-radius:50%; background:var(--plb-head-deco)}
 .plb-head::before{width:120px; height:120px; top:-45px; right:-25px}
 .plb-head::after{width:70px; height:70px; bottom:-35px; right:55px}
-.plb-eyebrow{font-size:10px; letter-spacing:2.5px; color:rgba(255,255,255,.82); font-weight:600; position:relative; z-index:2}
-.plb-title{font-size:1.5rem; font-weight:800; color:#fff; margin-top:4px; position:relative; z-index:2}
-.plb-sub{font-size:.78rem; color:rgba(255,255,255,.82); margin-top:4px; position:relative; z-index:2}
+.plb-eyebrow{font-size:10px; letter-spacing:2.5px; color:var(--plb-head-tx2); font-weight:600; position:relative; z-index:2}
+.plb-title{font-family:var(--plb-title-font); font-size:1.9rem; font-weight:var(--plb-title-w); color:var(--plb-head-tx); margin-top:2px; position:relative; z-index:2; line-height:1.05}
+.plb-sub{font-size:.78rem; color:var(--plb-head-tx2); margin-top:5px; position:relative; z-index:2}
 .plb-close{
-  position:absolute; top:12px; right:12px; z-index:5; width:34px; height:34px; border-radius:50%;
-  border:0; cursor:pointer; background:rgba(0,0,0,.28); color:#fff; font-size:18px; line-height:1;
+  position:absolute; top:13px; right:13px; z-index:5; width:34px; height:34px; border-radius:50%;
+  border:var(--plb-close-bd); cursor:pointer; background:var(--plb-close-bg); color:var(--plb-close-tx); font-size:16px; line-height:1;
   display:flex; align-items:center; justify-content:center;
 }
 .plb-body{overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px; display:flex; flex-direction:column; gap:16px}
 .plb-body::-webkit-scrollbar{width:0}
 /* tarjeta de promo */
-.pcard{border-radius:18px; overflow:hidden; position:relative; border:1px solid rgba(255,255,255,.08); color:#fff}
-.pcard.combo{background:linear-gradient(160deg,#3a0e12,#1c0a0c)}
-.pcard.lanzamiento{background:linear-gradient(160deg,#3a2c08,#1a1407)}
-.pcard-media{position:relative; width:100%; aspect-ratio:16/9; background:#0d0d10; display:flex; align-items:center; justify-content:center; overflow:hidden}
+.pcard{background:var(--plb-cardbg); border-radius:var(--plb-radius); overflow:hidden; position:relative; border:1px solid var(--plb-line); color:var(--plb-tx)}
+.pcard-media{position:relative; width:100%; aspect-ratio:16/9; background:var(--plb-ph-checo); display:flex; align-items:center; justify-content:center; overflow:hidden}
 .pcard-media img,.pcard-media video{width:100%; height:100%; object-fit:cover; display:block}
 .pcard-media .ph{width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:52px}
-.pcard-media .ph.checo{background:radial-gradient(120% 100% at 30% 20%,#6d1622,#2a0a0e)}
-.pcard-media .ph.matizze{background:radial-gradient(120% 100% at 30% 20%,#7a5a0c,#2a2007)}
-.pcard-disc{position:absolute; top:10px; right:10px; z-index:3; width:52px; height:52px; border-radius:50%;
-  background:#B91C2C; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  box-shadow:0 5px 14px rgba(185,28,44,.5); border:2px solid rgba(255,255,255,.25)}
-.pcard-disc b{font-size:16px; line-height:1; font-weight:800}
+.pcard-media .ph.checo{background:var(--plb-ph-checo)}
+.pcard-media .ph.matizze{background:var(--plb-ph-matizze)}
+.pcard-disc{position:absolute; top:10px; right:10px; z-index:3; width:54px; height:54px; border-radius:50%;
+  background:var(--plb-disc-bg); color:var(--plb-disc-tx); border:var(--plb-disc-bd); box-shadow:var(--plb-disc-shadow);
+  display:flex; flex-direction:column; align-items:center; justify-content:center}
+.pcard-disc b{font-family:var(--plb-title-font); font-size:17px; line-height:1; font-weight:700}
 .pcard-disc span{font-size:7px; letter-spacing:1px; margin-top:1px}
-.pcard-body{padding:15px}
-.pcard-label{display:inline-block; font-size:10px; font-weight:800; letter-spacing:1px; padding:4px 10px; border-radius:7px; margin-bottom:10px}
-.pcard-label.combo{background:rgba(0,0,0,.4); color:#ff8a93; border:1px solid rgba(255,138,147,.3)}
-.pcard-label.lanzamiento{background:rgba(184,134,11,.22); color:#f0cf6e; border:1px solid rgba(240,207,110,.35)}
-.pcard-title{font-size:1.25rem; font-weight:800; line-height:1.15}
-.pcard-subtitle{font-size:.8rem; color:rgba(255,255,255,.72); margin-top:3px}
-.pcard-desc{font-size:.8rem; color:rgba(255,255,255,.78); line-height:1.5; margin-top:8px}
-.pcard-row{display:flex; align-items:center; gap:8px; margin-top:14px}
-.pcard-chip{font-size:.72rem; font-weight:600; padding:5px 11px; border-radius:20px; border:1px solid rgba(255,255,255,.12); color:rgba(255,255,255,.88)}
-.pcard-btn{margin-left:auto; border:0; cursor:pointer; font-weight:700; font-size:.82rem; padding:10px 18px; border-radius:12px; color:#fff; font-family:inherit}
-.pcard-btn.combo{background:#B91C2C}
-.pcard-btn.lanzamiento{background:rgba(255,255,255,.12)}
-.pcard-mtag{position:absolute; bottom:7px; left:7px; z-index:3; font-size:9px; font-weight:700; letter-spacing:.5px; padding:3px 7px; border-radius:6px; background:rgba(0,0,0,.55); color:#fff}
-/* puntico rojo en la pestaña 🔥 */
+.pcard-body{padding:16px}
+.pcard-label{display:inline-block; font-size:10px; font-weight:800; letter-spacing:1.5px; padding:5px 11px; border-radius:7px; margin-bottom:11px; background:var(--plb-label-bg); border:var(--plb-label-bd); text-transform:uppercase}
+.pcard-label.combo{color:var(--plb-accent)}
+.pcard-label.lanzamiento{color:var(--plb-accent2)}
+.pcard-title{font-family:var(--plb-title-font); font-size:1.5rem; font-weight:var(--plb-title-w); line-height:1.12; color:var(--plb-tx)}
+.pcard-subtitle{font-size:.82rem; color:var(--plb-tx2); margin-top:3px}
+.pcard-desc{font-size:.82rem; color:var(--plb-tx2); line-height:1.55; margin-top:9px}
+.pcard-row{display:flex; align-items:center; gap:8px; margin-top:16px}
+.pcard-chip{font-size:.72rem; font-weight:600; padding:6px 12px; border-radius:30px; border:1px solid var(--plb-chip-bd); color:var(--plb-chip-tx)}
+.pcard-btn{margin-left:auto; border:0; cursor:pointer; font-weight:700; font-size:.8rem; padding:11px 20px; border-radius:var(--plb-btn-radius); background:var(--plb-accent); color:var(--plb-on-accent); font-family:inherit; text-transform:var(--plb-btn-tt); letter-spacing:var(--plb-btn-ls)}
+.pcard-btn.lanzamiento{background:var(--plb-btn2-bg); border:var(--plb-btn2-bd); color:var(--plb-btn2-tx)}
+.pcard-mtag{position:absolute; bottom:7px; left:7px; z-index:3; font-size:9px; font-weight:700; letter-spacing:.5px; padding:3px 8px; border-radius:6px; background:var(--plb-mtag-bg); color:var(--plb-mtag-tx)}
 .promo-dot{position:absolute; top:-3px; right:-6px; width:9px; height:9px; border-radius:50%; background:#ff3b3b; border:1.5px solid #fff}
+
+/* ── PROMOS · TEMA GLAM (oscuro + dorado) ── */
+html[data-tema-promos="glam"] #promoLB{
+  --plb-backdrop:rgba(0,0,0,.62);
+  --plb-card:#0E0B0D; --plb-head:#15100f; --plb-head-deco:rgba(201,168,106,.07);
+  --plb-head-tx:#f0dcb0; --plb-head-tx2:rgba(255,255,255,.55);
+  --plb-tx:#f5ede0; --plb-tx2:rgba(255,255,255,.62);
+  --plb-cardbg:#171114; --plb-line:rgba(201,168,106,.18);
+  --plb-accent:#C9A86A; --plb-accent2:#d8b87a; --plb-on-accent:#1a1206;
+  --plb-title-font:'Playfair Display',serif; --plb-title-w:700;
+  --plb-radius:14px; --plb-head-radius:22px 22px 0 0;
+  --plb-close-bg:rgba(201,168,106,.12); --plb-close-tx:#caa86b; --plb-close-bd:1px solid rgba(201,168,106,.4);
+  --plb-chip-bd:rgba(201,168,106,.3); --plb-chip-tx:rgba(201,168,106,.9);
+  --plb-mtag-bg:rgba(0,0,0,.55); --plb-mtag-tx:#caa86b;
+  --plb-disc-bg:radial-gradient(circle at 35% 30%,#f0dcb0,#b08d4e); --plb-disc-tx:#241a06; --plb-disc-bd:none; --plb-disc-shadow:0 6px 18px rgba(201,168,106,.4);
+  --plb-label-bg:rgba(201,168,106,.1); --plb-label-bd:1px solid rgba(201,168,106,.35);
+  --plb-btn-radius:30px; --plb-btn-tt:none; --plb-btn-ls:.3px;
+  --plb-btn2-bg:rgba(201,168,106,.12); --plb-btn2-bd:1px solid rgba(201,168,106,.4); --plb-btn2-tx:#caa86b;
+  --plb-ph-checo:radial-gradient(120% 100% at 30% 20%,#3a2c12,#0c0a0b);
+  --plb-ph-matizze:radial-gradient(120% 100% at 30% 20%,#2a1f12,#0c0a0b);
+}
+/* ── PROMOS · TEMA SPA (rosa/nude delicado) ── */
+html[data-tema-promos="spa"] #promoLB{
+  --plb-backdrop:rgba(80,55,55,.42);
+  --plb-card:#FBF4F2; --plb-head:#FBF4F2; --plb-head-deco:rgba(201,139,134,.08);
+  --plb-head-tx:#5E4742; --plb-head-tx2:#b29089;
+  --plb-tx:#5E4742; --plb-tx2:#8a6f69;
+  --plb-cardbg:#FFFFFF; --plb-line:#F0DCD6;
+  --plb-accent:#C98B86; --plb-accent2:#b08079; --plb-on-accent:#FFFFFF;
+  --plb-title-font:'Jost',sans-serif; --plb-title-w:500;
+  --plb-radius:22px; --plb-head-radius:28px 28px 0 0;
+  --plb-close-bg:#F1E2DD; --plb-close-tx:#9c7c75; --plb-close-bd:0;
+  --plb-chip-bd:#f0dcd6; --plb-chip-tx:#b08079;
+  --plb-mtag-bg:rgba(255,255,255,.82); --plb-mtag-tx:#9c7c75;
+  --plb-disc-bg:#FFFFFF; --plb-disc-tx:#C98B86; --plb-disc-bd:0; --plb-disc-shadow:0 5px 14px rgba(201,139,134,.3);
+  --plb-label-bg:#F4E3DE; --plb-label-bd:0;
+  --plb-btn-radius:30px; --plb-btn-tt:none; --plb-btn-ls:.3px;
+  --plb-btn2-bg:#F4E3DE; --plb-btn2-bd:0; --plb-btn2-tx:#b08079;
+  --plb-ph-checo:linear-gradient(150deg,#f7e4df,#eccfc8);
+  --plb-ph-matizze:linear-gradient(150deg,#f3e8df,#e6d2c4);
+}
 
 </style>
 </head>
@@ -1133,12 +1188,12 @@ async function loadFromSupabase(){
     try {
       const { data: confData } = await sb
         .from('configuracion')
-        .select('clave,valor')
-        .eq('clave', 'tema_catalogo');
-      const fila = Array.isArray(confData) ? confData.find(c => c.clave === 'tema_catalogo') : null;
-      if (fila && fila.valor) aplicarTema(fila.valor);
+        .select('clave,valor');
+      const get = (k) => Array.isArray(confData) ? (confData.find(c => c.clave === k)||{}).valor : null;
+      const tc = get('tema_catalogo'); if (tc) aplicarTema(tc);
+      const tp = get('tema_promos');   if (tp) aplicarTemaPromos(tp);
     } catch(e) {
-      console.warn('No se pudo leer el tema del catálogo (se usa el predeterminado):', e);
+      console.warn('No se pudo leer la configuración de apariencia (se usan los predeterminados):', e);
     }
 
     // Generar filtros de categoría según las categorías reales cargadas
@@ -1177,6 +1232,12 @@ const TEMAS_VALIDOS = ['crema','glam','rosa','blanco','arena'];
 function aplicarTema(tema){
   const t = TEMAS_VALIDOS.includes(tema) ? tema : 'crema';
   document.documentElement.setAttribute('data-tema', t);
+}
+// Apariencia (tema del lightbox de promociones)
+const TEMAS_PROMOS_VALIDOS = ['editorial','glam','spa'];
+function aplicarTemaPromos(tema){
+  const t = TEMAS_PROMOS_VALIDOS.includes(tema) ? tema : 'editorial';
+  document.documentElement.setAttribute('data-tema-promos', t);
 }
 
 // ── SPLASH ──
@@ -2026,7 +2087,7 @@ function confirmWompiPay(){
     <div class="plb-head">
       <button class="plb-close" onclick="closePromos()">✕</button>
       <div class="plb-eyebrow">SAMJURO · OFERTAS</div>
-      <div class="plb-title">🔥 Promociones</div>
+      <div class="plb-title">Promociones</div>
       <div class="plb-sub">Precios especiales para tu salón este mes</div>
     </div>
     <div class="plb-body" id="promoBody"></div>
