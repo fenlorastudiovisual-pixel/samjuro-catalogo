@@ -664,6 +664,65 @@ body{
   }
 }
 
+/* ══ LIGHTBOX DE PROMOCIONES (Opción D) ══ */
+#promoLB{
+  position:fixed; inset:0; z-index:300;
+  background:rgba(0,0,0,.66); backdrop-filter:blur(4px);
+  display:none; align-items:flex-end; justify-content:center;
+}
+#promoLB.open{display:flex; animation:promoFade .25s ease}
+@keyframes promoFade{from{opacity:0}to{opacity:1}}
+.plb-card{
+  width:100%; max-width:480px; max-height:90vh;
+  background:#221518; border-radius:22px 22px 0 0;
+  display:flex; flex-direction:column; overflow:hidden;
+  animation:plbUp .35s cubic-bezier(.2,.9,.25,1);
+}
+@keyframes plbUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.plb-head{position:relative; background:#B31B1B; padding:20px 18px 18px; overflow:hidden; flex-shrink:0}
+.plb-head::before,.plb-head::after{content:""; position:absolute; border-radius:50%; background:rgba(255,255,255,.07)}
+.plb-head::before{width:120px; height:120px; top:-45px; right:-25px}
+.plb-head::after{width:70px; height:70px; bottom:-35px; right:55px}
+.plb-eyebrow{font-size:10px; letter-spacing:2.5px; color:rgba(255,255,255,.82); font-weight:600; position:relative; z-index:2}
+.plb-title{font-size:1.5rem; font-weight:800; color:#fff; margin-top:4px; position:relative; z-index:2}
+.plb-sub{font-size:.78rem; color:rgba(255,255,255,.82); margin-top:4px; position:relative; z-index:2}
+.plb-close{
+  position:absolute; top:12px; right:12px; z-index:5; width:34px; height:34px; border-radius:50%;
+  border:0; cursor:pointer; background:rgba(0,0,0,.28); color:#fff; font-size:18px; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+}
+.plb-body{overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px; display:flex; flex-direction:column; gap:16px}
+.plb-body::-webkit-scrollbar{width:0}
+/* tarjeta de promo */
+.pcard{border-radius:18px; overflow:hidden; position:relative; border:1px solid rgba(255,255,255,.08); color:#fff}
+.pcard.combo{background:linear-gradient(160deg,#3a0e12,#1c0a0c)}
+.pcard.lanzamiento{background:linear-gradient(160deg,#3a2c08,#1a1407)}
+.pcard-media{position:relative; width:100%; aspect-ratio:16/9; background:#0d0d10; display:flex; align-items:center; justify-content:center; overflow:hidden}
+.pcard-media img,.pcard-media video{width:100%; height:100%; object-fit:cover; display:block}
+.pcard-media .ph{width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:52px}
+.pcard-media .ph.checo{background:radial-gradient(120% 100% at 30% 20%,#6d1622,#2a0a0e)}
+.pcard-media .ph.matizze{background:radial-gradient(120% 100% at 30% 20%,#7a5a0c,#2a2007)}
+.pcard-disc{position:absolute; top:10px; right:10px; z-index:3; width:52px; height:52px; border-radius:50%;
+  background:#B91C2C; color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  box-shadow:0 5px 14px rgba(185,28,44,.5); border:2px solid rgba(255,255,255,.25)}
+.pcard-disc b{font-size:16px; line-height:1; font-weight:800}
+.pcard-disc span{font-size:7px; letter-spacing:1px; margin-top:1px}
+.pcard-body{padding:15px}
+.pcard-label{display:inline-block; font-size:10px; font-weight:800; letter-spacing:1px; padding:4px 10px; border-radius:7px; margin-bottom:10px}
+.pcard-label.combo{background:rgba(0,0,0,.4); color:#ff8a93; border:1px solid rgba(255,138,147,.3)}
+.pcard-label.lanzamiento{background:rgba(184,134,11,.22); color:#f0cf6e; border:1px solid rgba(240,207,110,.35)}
+.pcard-title{font-size:1.25rem; font-weight:800; line-height:1.15}
+.pcard-subtitle{font-size:.8rem; color:rgba(255,255,255,.72); margin-top:3px}
+.pcard-desc{font-size:.8rem; color:rgba(255,255,255,.78); line-height:1.5; margin-top:8px}
+.pcard-row{display:flex; align-items:center; gap:8px; margin-top:14px}
+.pcard-chip{font-size:.72rem; font-weight:600; padding:5px 11px; border-radius:20px; border:1px solid rgba(255,255,255,.12); color:rgba(255,255,255,.88)}
+.pcard-btn{margin-left:auto; border:0; cursor:pointer; font-weight:700; font-size:.82rem; padding:10px 18px; border-radius:12px; color:#fff; font-family:inherit}
+.pcard-btn.combo{background:#B91C2C}
+.pcard-btn.lanzamiento{background:rgba(255,255,255,.12)}
+.pcard-mtag{position:absolute; bottom:7px; left:7px; z-index:3; font-size:9px; font-weight:700; letter-spacing:.5px; padding:3px 7px; border-radius:6px; background:rgba(0,0,0,.55); color:#fff}
+/* puntico rojo en la pestaña 🔥 */
+.promo-dot{position:absolute; top:-3px; right:-6px; width:9px; height:9px; border-radius:50%; background:#ff3b3b; border:1.5px solid #fff}
+
 </style>
 </head>
 <body>
@@ -754,6 +813,7 @@ body{
 <!-- ════ BOTTOM NAV ════ -->
 <nav class="botnav">
   <button class="ni on" onclick="setNav(this)"><div class="ni-ic">🏠</div><div class="ni-lb">Inicio</div><div class="ni-dot"></div></button>
+  <button class="ni" id="promoNavBtn" onclick="setNav(this);openPromos()" style="position:relative; display:none"><div class="ni-ic" style="position:relative">🔥<span class="promo-dot" id="promoDot" style="display:none"></span></div><div class="ni-lb">Promos</div><div class="ni-dot"></div></button>
   <button class="ni" onclick="setNav(this);toggleSearch()"><div class="ni-ic">🔍</div><div class="ni-lb">Buscar</div><div class="ni-dot"></div></button>
   <button class="ni" onclick="setNav(this);openCart()" style="position:relative"><div class="ni-ic">🛍️<span class="cart-badge" id="cartBadge">0</span></div><div class="ni-lb">Pedido</div><div class="ni-dot"></div></button>
   <button class="ni" id="favNavBtn" onclick="setNav(this);openFavs()" style="position:relative"><div class="ni-ic">🤍<span class="cart-badge" id="favBadge">0</span></div><div class="ni-lb">Guardados</div><div class="ni-dot"></div></button>
@@ -932,6 +992,7 @@ function activarRealtime(){
   sb.channel('catalogo-cambios')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, recargarPronto)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'marcas' }, recargarPronto)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'promociones' }, recargarPronto)
     .subscribe((estado) => {
       console.log('📡 Realtime:', estado);
     });
@@ -1024,6 +1085,22 @@ async function loadFromSupabase(){
     renderBrandPills();
     renderProfileBrands();
 
+    // ── PROMOCIONES (lightbox) ──
+    // Leemos solo las activas, ordenadas. Si la lectura falla, el catálogo
+    // simplemente no muestra promos (se ve como siempre).
+    try {
+      const { data: promosData } = await sb
+        .from('promociones')
+        .select('*')
+        .eq('activa', true)
+        .order('orden', { ascending: true });
+      PROMOS = Array.isArray(promosData) ? promosData : [];
+    } catch(e) {
+      console.warn('No se pudieron leer las promociones:', e);
+      PROMOS = [];
+    }
+    renderPromos();
+
     // Generar filtros de categoría según las categorías reales cargadas
     renderCategoryFilters();
     // Render inicial
@@ -1051,6 +1128,9 @@ async function loadFromSupabase(){
 let curSlide=0,lbFav=false,cartCount=0;
 let activeBrand='todas',activeFilter='todas';
 let searchOpen=false;
+// Promociones (lightbox)
+let PROMOS=[];
+let _promosListas=false,_splashIdo=false,_promosAutoAbierto=false;
 
 // ── SPLASH ──
 window.addEventListener('load',()=>{
@@ -1063,6 +1143,8 @@ window.addEventListener('load',()=>{
     if (P.length > 0) {
       applyFilters();
     }
+    _splashIdo = true;
+    intentarAutoAbrirPromos();
   },2500);
 });
 
@@ -1573,6 +1655,105 @@ function closeProfile(){
 function profileBg(e){if(e.target===document.getElementById('profilePanel'))closeProfile()}
 
 
+// ══ PROMOCIONES (lightbox · Opción D) ══
+function escPromo(s){
+  if(s==null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function buildPromoCardHTML(p, idx){
+  const tipo = (p.tipo==='lanzamiento') ? 'lanzamiento' : 'combo';
+  const isCombo = tipo==='combo';
+  const labelTxt = isCombo ? 'COMBO KIT' : '★ NUEVO';
+  // Placeholder según marca (si se puede inferir)
+  let phClass='checo', phEmoji = isCombo ? '🎁' : '✨', marcaNombre='';
+  for(const k in MARCAS_META){
+    if(String(MARCAS_META[k].id)===String(p.marca_id)){
+      marcaNombre = MARCAS_META[k].nombre || '';
+      if(MARCAS_META[k].icono_emoji) phEmoji = MARCAS_META[k].icono_emoji;
+      break;
+    }
+  }
+  if(/matiz/i.test(marcaNombre)) phClass='matizze';
+
+  const url=(p.media_url||'').trim();
+  let media;
+  if(url && p.media_tipo==='video'){
+    media=`<video src="${escPromo(url)}" muted loop autoplay playsinline style="position:absolute;inset:0"></video><span class="pcard-mtag">🎬 Video</span>`;
+  } else if(url){
+    media=`<div class="ph ${phClass}">${phEmoji}</div><img src="${escPromo(url)}" alt="" style="position:absolute;inset:0" onerror="this.style.display='none'"><span class="pcard-mtag">🖼️ Imagen</span>`;
+  } else {
+    media=`<div class="ph ${phClass}">${phEmoji}</div>`;
+  }
+  const disc=(isCombo && p.descuento)?`<div class="pcard-disc"><b>-${parseInt(p.descuento)}%</b><span>DCTO</span></div>`:'';
+  const sub=p.subtitulo?`<div class="pcard-subtitle">${escPromo(p.subtitulo)}</div>`:'';
+  const desc=p.descripcion?`<div class="pcard-desc">${escPromo(p.descripcion)}</div>`:'';
+  const chip=p.chip_texto?`<span class="pcard-chip">${escPromo(p.chip_texto)}</span>`:'<span></span>';
+  const btnTxt=(p.boton_texto||'Cotizar')+' →';
+  return `<div class="pcard ${tipo}">
+    <div class="pcard-media">${media}${disc}</div>
+    <div class="pcard-body">
+      <span class="pcard-label ${tipo}">${labelTxt}</span>
+      <div class="pcard-title">${escPromo(p.titulo||'')}</div>
+      ${sub}${desc}
+      <div class="pcard-row">${chip}
+        <button class="pcard-btn ${tipo}" onclick="promoAction(${idx})">${escPromo(btnTxt)}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderPromos(){
+  const navBtn=document.getElementById('promoNavBtn');
+  const dot=document.getElementById('promoDot');
+  const body=document.getElementById('promoBody');
+  if(!PROMOS || PROMOS.length===0){
+    if(navBtn) navBtn.style.display='none';
+    if(dot) dot.style.display='none';
+    if(body) body.innerHTML='';
+    closePromos();
+    _promosListas=true;
+    return;
+  }
+  if(navBtn) navBtn.style.display='';
+  if(dot) dot.style.display='';
+  if(body) body.innerHTML = PROMOS.map((p,i)=>buildPromoCardHTML(p,i)).join('');
+  _promosListas=true;
+  intentarAutoAbrirPromos();
+}
+
+function intentarAutoAbrirPromos(){
+  if(_splashIdo && _promosListas && !_promosAutoAbierto && PROMOS.length>0){
+    _promosAutoAbierto=true;
+    openPromos();
+  }
+}
+
+function openPromos(){
+  if(!PROMOS || PROMOS.length===0) return;
+  document.getElementById('promoLB').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closePromos(){
+  const lb=document.getElementById('promoLB');
+  if(lb) lb.classList.remove('open');
+  document.body.style.overflow='';
+}
+function promosBg(e){ if(e.target===document.getElementById('promoLB')) closePromos(); }
+
+function promoAction(idx){
+  const p=PROMOS[idx]; if(!p) return;
+  const accion=p.boton_accion||'whatsapp';
+  const destino=(p.boton_destino||'').trim();
+  if(accion==='externo' && destino){ window.open(destino,'_blank'); return; }
+  const num = (accion==='whatsapp' && /^\d{8,15}$/.test(destino)) ? destino : '573178012562';
+  let msg='¡Hola Samjuro Japan! 👋 Me interesa la promoción *'+(p.titulo||'')+'*';
+  if(p.subtitulo) msg+=' ('+p.subtitulo+')';
+  msg+='. ¿Me dan más información sobre precio y disponibilidad? 🙏';
+  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg),'_blank');
+}
+
+
 // ── FAVS DATA ──
 let favItems = [];
 
@@ -1792,5 +1973,18 @@ function confirmWompiPay(){
     </div>
   </div>
 </div>
+<!-- ══ LIGHTBOX DE PROMOCIONES ══ -->
+<div id="promoLB" onclick="promosBg(event)">
+  <div class="plb-card">
+    <div class="plb-head">
+      <button class="plb-close" onclick="closePromos()">✕</button>
+      <div class="plb-eyebrow">SAMJURO · OFERTAS</div>
+      <div class="plb-title">🔥 Promociones</div>
+      <div class="plb-sub">Precios especiales para tu salón este mes</div>
+    </div>
+    <div class="plb-body" id="promoBody"></div>
+  </div>
+</div>
+
 </body>
 </html>
