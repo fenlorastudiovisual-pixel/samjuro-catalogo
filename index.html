@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-tema="crema">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -13,6 +13,14 @@
   --ink:#111;--ink2:#555;--ink3:#999;
   --white:#fff;--bg:#F8F6F4;
   --nav:95px;--bot:64px;
+  /* ── variables de tema (valores por defecto = look actual) ── */
+  --accent-strong:#111;   /* fondo de botones oscuros (pc-add, filtro activo, tag TOP) */
+  --on-accent:#fff;       /* texto sobre esos botones */
+  --chipbg:#e6e6e6;       /* fondo chips de categoría */
+  --imgbg:#ececec;        /* fondo placeholder de imágenes */
+  --navline:rgba(0,0,0,.07);
+  --navshadow:0 -6px 20px rgba(0,0,0,.06);
+  color-scheme:light;
 }
 html{height:100%;overflow:hidden}
 body{
@@ -63,7 +71,7 @@ body{
 .topnav{
   position:fixed;top:0;left:0;right:0;max-width:430px;margin:0 auto;
   height:var(--nav);background:var(--white);
-  border-bottom:1px solid rgba(0,0,0,.07);
+  border-bottom:1px solid var(--navline);
   display:flex;align-items:center;justify-content:center;
   padding:0 14px;z-index:200;
 }
@@ -149,9 +157,9 @@ body{
 .fp{
   flex-shrink:0;font-family:'Syne',sans-serif;font-size:.67rem;font-weight:700;
   padding:7px 15px;border-radius:100px;border:none;cursor:pointer;
-  background:#e6e6e6;color:var(--ink2);white-space:nowrap;transition:.18s;
+  background:var(--chipbg);color:var(--ink2);white-space:nowrap;transition:.18s;
 }
-.fp.on{background:var(--ink);color:#fff}
+.fp.on{background:var(--accent-strong);color:var(--on-accent)}
 
 /* ══ PRODUCT GRID — 2 columns ══ */
 .pgrid{
@@ -177,7 +185,7 @@ body{
 
 .pc-img{
   width:100%;aspect-ratio:1/1;overflow:hidden;position:relative;
-  background:#ececec;
+  background:var(--imgbg);
 }
 .pc-img img{
   width:100%;height:100%;object-fit:cover;display:block;
@@ -192,7 +200,7 @@ body{
   padding:3px 7px;border-radius:100px;color:#fff;
 }
 .tnew{background:var(--red)}
-.ttop{background:var(--ink)}
+.ttop{background:var(--accent-strong)}
 .tsale{background:#D05010}
 .tpro{background:#1F6B3A}
 .tcheco{background:#B31B1B}
@@ -219,8 +227,8 @@ body{
 .pc-foot{display:flex;align-items:center;justify-content:space-between;gap:4px}
 .pc-price{font-family:'Playfair Display',serif;font-weight:700;font-size:.88rem;color:var(--red);font-style:italic}
 .pc-add{
-  width:28px;height:28px;background:var(--ink);border:none;border-radius:8px;
-  color:#fff;font-size:1rem;display:flex;align-items:center;justify-content:center;
+  width:28px;height:28px;background:var(--accent-strong);border:none;border-radius:8px;
+  color:var(--on-accent);font-size:1rem;display:flex;align-items:center;justify-content:center;
   cursor:pointer;flex-shrink:0;transition:background .18s;
 }
 .pc-add.ok{background:#1F6B3A}
@@ -253,7 +261,7 @@ body{
 /* ══ BOTTOM NAV ══ */
 .botnav{
   position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;
-  height:var(--bot);background:var(--white);border-top:1px solid rgba(0,0,0,.07);
+  height:var(--bot);background:var(--white);border-top:1.5px solid var(--navline);box-shadow:var(--navshadow);
   display:flex;align-items:center;justify-content:space-around;
   padding-bottom:env(safe-area-inset-bottom,0px);z-index:200;
 }
@@ -646,23 +654,42 @@ body{
   font-size:.6rem;font-weight:700;color:var(--ink3);letter-spacing:.05em;
 }
 
-/* ══ DARK MODE FIX (auto-detecta preferencia del navegador) ══ */
-@media (prefers-color-scheme: dark) {
-  #splash {
-    background: #1a1a1a !important;
-  }
-  .sp-tagline {
-    color: #888 !important;
-  }
-  .topnav {
-    background: #1a1a1a !important;
-    border-bottom-color: rgba(255,255,255,.08) !important;
-  }
-  .search-ov {
-    background: #1a1a1a !important;
-    border-bottom-color: rgba(255,255,255,.08) !important;
-  }
+/* ══ TEMAS DEL CATÁLOGO (controlados desde el admin) ══ */
+/* Cada tema redefine las variables; el resto del CSS las usa y se re-pinta solo. */
+html[data-tema="crema"]{
+  --bg:#F4EFE8;--white:#FBF8F3;--ink:#2A2320;--ink2:#7c6f60;--ink3:#9C8E7D;
+  --red:#7A2E2E;--red2:#5e2424;--red3:#8f3838;
+  --accent-strong:#2A2320;--on-accent:#FBF8F3;--chipbg:#EAE0D2;--imgbg:#ece3d5;
+  --navline:#E0D3C0;--navshadow:0 -6px 22px rgba(120,90,60,.12);
 }
+html[data-tema="glam"]{
+  --bg:#0E0B0D;--white:#171114;--ink:#F2E9DC;--ink2:#bcae98;--ink3:#9a8c78;
+  --red:#C9A86A;--red2:#a8873f;--red3:#dcc089;
+  --accent-strong:#C9A86A;--on-accent:#1a1206;--chipbg:#241c1f;--imgbg:#1d1619;
+  --navline:rgba(201,168,106,.30);--navshadow:0 -8px 26px rgba(0,0,0,.55);
+  color-scheme:dark;
+}
+html[data-tema="rosa"]{
+  --bg:#FBF1EE;--white:#FFFFFF;--ink:#5E4742;--ink2:#9c7c75;--ink3:#B29089;
+  --red:#C98B86;--red2:#b0746f;--red3:#d79f9a;
+  --accent-strong:#5E4742;--on-accent:#FFFFFF;--chipbg:#F4E3DE;--imgbg:#f3ddd7;
+  --navline:#F0D6CF;--navshadow:0 -6px 22px rgba(180,120,115,.14);
+}
+html[data-tema="blanco"]{
+  --bg:#FFFFFF;--white:#FAFAFA;--ink:#1A1A1A;--ink2:#6a6a6a;--ink3:#8A8A8A;
+  --red:#B91C2C;--red2:#9a1422;--red3:#d4283a;
+  --accent-strong:#1A1A1A;--on-accent:#FFFFFF;--chipbg:#F0F0F0;--imgbg:#eee;
+  --navline:#E2E2E2;--navshadow:0 -6px 20px rgba(0,0,0,.07);
+}
+html[data-tema="arena"]{
+  --bg:#E9E2D5;--white:#F4EFE5;--ink:#3B362C;--ink2:#7a7260;--ink3:#8A8270;
+  --red:#9C5A3C;--red2:#7e4830;--red3:#b06a48;
+  --accent-strong:#3B362C;--on-accent:#F4EFE5;--chipbg:#E0D3C0;--imgbg:#ded2bd;
+  --navline:#D2C6B0;--navshadow:0 -6px 22px rgba(110,90,60,.13);
+}
+/* En el tema oscuro, los tags claros llevan texto oscuro para buen contraste */
+html[data-tema="glam"] .tnew,
+html[data-tema="glam"] .ttop{color:#1a1206}
 
 /* ══ LIGHTBOX DE PROMOCIONES (Opción D) ══ */
 #promoLB{
@@ -993,6 +1020,7 @@ function activarRealtime(){
     .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, recargarPronto)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'marcas' }, recargarPronto)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'promociones' }, recargarPronto)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracion' }, recargarPronto)
     .subscribe((estado) => {
       console.log('📡 Realtime:', estado);
     });
@@ -1101,6 +1129,18 @@ async function loadFromSupabase(){
     }
     renderPromos();
 
+    // ── APARIENCIA (tema del catálogo, elegido desde el admin) ──
+    try {
+      const { data: confData } = await sb
+        .from('configuracion')
+        .select('clave,valor')
+        .eq('clave', 'tema_catalogo');
+      const fila = Array.isArray(confData) ? confData.find(c => c.clave === 'tema_catalogo') : null;
+      if (fila && fila.valor) aplicarTema(fila.valor);
+    } catch(e) {
+      console.warn('No se pudo leer el tema del catálogo (se usa el predeterminado):', e);
+    }
+
     // Generar filtros de categoría según las categorías reales cargadas
     renderCategoryFilters();
     // Render inicial
@@ -1131,6 +1171,13 @@ let searchOpen=false;
 // Promociones (lightbox)
 let PROMOS=[];
 let _promosListas=false,_splashIdo=false,_promosAutoAbierto=false;
+
+// Apariencia (tema del catálogo)
+const TEMAS_VALIDOS = ['crema','glam','rosa','blanco','arena'];
+function aplicarTema(tema){
+  const t = TEMAS_VALIDOS.includes(tema) ? tema : 'crema';
+  document.documentElement.setAttribute('data-tema', t);
+}
 
 // ── SPLASH ──
 window.addEventListener('load',()=>{
