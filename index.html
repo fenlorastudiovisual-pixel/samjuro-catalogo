@@ -1019,8 +1019,9 @@ function mapearTarjeta(coleccion, marca, categoria, productos, categoria_slug){
     cats.push(categoria_slug);
   }
 
-  // Variantes: los primeros 4 nombres de productos de la colección
-  const vars = productos.slice(0, 4).map(p => {
+  // Variantes: TODOS los nombres de productos de la colección
+  // (antes había un límite de 4 → se quedaban tonos por fuera)
+  const vars = productos.map(p => {
     // De "Esmalte #88 Amor" extrae "Amor"
     const m = p.nombre.match(/#?\d+\s*(.+?)(\s*\(.*\))?$/);
     return m ? m[1].trim() : p.nombre;
