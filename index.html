@@ -296,6 +296,13 @@ body{
   max-width:430px;margin:0 auto;
 }
 #lb.open{display:flex}
+#toneLB{
+  position:fixed;inset:0;z-index:420;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(5px);
+  display:none;align-items:flex-end;
+  max-width:430px;margin:0 auto;
+}
+#toneLB.open{display:flex}
 .lb-sheet{
   background:var(--white);border-radius:26px 26px 0 0;
   width:100%;max-height:92vh;overflow-y:auto;overflow-x:hidden;
@@ -813,7 +820,7 @@ html[data-tema-promos="spa"] #promoLB{
    Ensancha la columna centrada de 430px a 820px entre 768px y 1023px. */
 @media (min-width:768px) and (max-width:1023px){
   body, .topnav, .search-ov, .page, .botnav,
-  #lb, #cartPanel, #profilePanel, #favsPanel, #wompiModal{
+  #lb, #toneLB, #cartPanel, #profilePanel, #favsPanel, #wompiModal{
     max-width:820px !important;
   }
   /* 3 productos por fila solo en tablet */
@@ -949,6 +956,27 @@ html[data-tema-promos="spa"] #promoLB{
       <div class="lb-acts">
         <button class="lb-fav-b" id="lbFavB">🤍</button>
         <button class="lb-cart" id="lbCartB" onclick="lbAddCart()">🛒 Agregar al pedido</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX DETALLE DE TONO (al tocar un tono dentro de una colección) -->
+<div id="toneLB" onclick="toneBg(event)">
+  <div class="lb-sheet">
+    <div class="lb-handle"></div>
+    <button class="lb-x" onclick="closeToneLB()">✕</button>
+    <div class="lb-car">
+      <div class="lb-slides"><div class="lb-slide"><img id="toneImg" src="" alt=""></div></div>
+    </div>
+    <div class="lb-body">
+      <div class="lb-brand-lbl" id="toneBrand"></div>
+      <div class="lb-name" id="toneName"></div>
+      <div class="lb-stars-row" id="toneStars"></div>
+      <div class="lb-desc" id="toneDesc"></div>
+      <div class="lb-acts">
+        <button class="lb-fav-b" id="toneFavB">🤍</button>
+        <button class="lb-cart" id="toneCartB" onclick="toneAddCart()">🛒 Agregar al pedido</button>
       </div>
     </div>
   </div>
@@ -1168,6 +1196,8 @@ async function loadFromSupabase(){
           categoria: prod.categoria,
           coleccion: tematica ? prod.coleccion : null,
           coleccion_slug: tematica ? prod.coleccion_slug : null,
+          coleccion_portada: tematica ? prod.coleccion_portada : null,
+          coleccion_interior: tematica ? prod.coleccion_interior : null,
           categoria_slug: prod.categoria_slug,
           productos: []
         });
@@ -1209,6 +1239,8 @@ async function loadFromSupabase(){
         reviews: grupo.productos.length * 10 + 50,  // pseudo-reviews proporcional
         desc: desc,
         imgsReales: imgsReales,  // fotos propias del producto (o null)
+        coleccionPortada: grupo.coleccion_portada || null,
+        coleccionInterior: grupo.coleccion_interior || null,
         // Guardamos los IDs de productos individuales que pertenecen a esta tarjeta
         productosInternos: grupo.productos.map(p => p.id),
         coleccion: grupo.coleccion,
@@ -1329,9 +1361,10 @@ window.addEventListener('load',()=>{
 function makeCard(p){
   const wc=p.wide?' wide':'';
   const bc=p.brand==='checo'?'checo':'mat';
+  const portada = (p.coleccionPortada && p.coleccionPortada.trim()) ? p.coleccionPortada : p.imgs[0];
   return `<div class="pc${wc}" onclick="openLB(${p.id})">
     <div class="pc-img">
-      <img src="${p.imgs[0]}" alt="${p.name}" loading="lazy"
+      <img src="${portada}" alt="${p.name}" loading="lazy"
            onerror="this.src='https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&q=80'">
       <span class="pc-tag ${p.tag}">${p.tagLabel}</span>
       <button class="pc-fav" onclick="fav(event,this,${p.id})">🤍</button>
@@ -1607,7 +1640,16 @@ function openLB(idx){
     }
   }
 
-  if (presIndiv){
+  // ¿Es una colección temática (caja con varios tonos)?
+  const esColeccion = p.productosInternos && p.productosInternos.length > 1;
+
+  if (esColeccion){
+    // Cambio 2: imagen fija interior (no carrusel) para colecciones
+    const interior = (p.coleccionInterior && p.coleccionInterior.trim()) ? p.coleccionInterior : p.imgs[0];
+    document.getElementById('lbSlides').innerHTML =
+      `<div class="lb-slide"><img src="${interior}" alt="" onerror="this.src='${p.imgs[0]}'"></div>`;
+    document.getElementById('lbDots').innerHTML = '';  // sin puntos: una sola imagen
+  } else if (presIndiv){
     // Carrusel: una imagen por presentación (su imagen_url, o genérica si está vacía)
     const fallback = p.imgs[0];
     document.getElementById('lbSlides').innerHTML =
@@ -1697,8 +1739,50 @@ function openLB(idx){
 function toggleToneSelect(el, productoId){
   document.querySelectorAll('.tone-card').forEach(t => t.classList.remove('selected'));
   el.classList.add('selected');
-  // Guardamos el producto seleccionado en una variable global
   window.tonoSeleccionado = productoId;
+  abrirDetalleTono(productoId);
+}
+
+// Cambio 3: lightbox de detalle de un tono individual
+let toneActual = null;
+function abrirDetalleTono(productoId){
+  const pi = PI.find(x => x.id === productoId); if(!pi) return;
+  toneActual = pi;
+  const pres = pi.presentaciones && pi.presentaciones[0];
+  // Imagen propia del tono (su imagen_url de presentación); si no, genérica
+  const fb = (IMG.esmalte && IMG.esmalte[0]) || '';
+  const img = (pres && pres.imagen_url && pres.imagen_url.trim()) ? pres.imagen_url : fb;
+  const imgEl = document.getElementById('toneImg');
+  imgEl.src = img; imgEl.onerror = function(){ this.src = fb; };
+  document.getElementById('toneBrand').textContent = pi.marca || '';
+  document.getElementById('toneBrand').className = 'lb-brand-lbl ' + ((pi.marca==='CHECO')?'checo':'mat');
+  document.getElementById('toneName').textContent = pi.nombre || '';
+  let st=''; for(let i=1;i<=5;i++) st+=`<span class="s sf">★</span>`;
+  document.getElementById('toneStars').innerHTML = st;
+  document.getElementById('toneDesc').textContent =
+    pi.descripcion_corta || pi.descripcion_larga || 'Consultar disponibilidad por WhatsApp.';
+  const fav = favItems.some(f=>f.id===pi.id);
+  document.getElementById('toneFavB').textContent = fav ? '❤️' : '🤍';
+  const cb=document.getElementById('toneCartB'); cb.innerHTML='🛒 Agregar al pedido'; cb.classList.remove('ok');
+  document.getElementById('toneLB').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeToneLB(){
+  document.getElementById('toneLB').classList.remove('open');
+  document.body.style.overflow='';
+}
+function toneBg(e){ if(e.target.id==='toneLB') closeToneLB(); }
+function toneAddCart(){
+  if(!toneActual) return;
+  const pres = toneActual.presentaciones && toneActual.presentaciones[0];
+  const img = (pres && pres.imagen_url) ? pres.imagen_url : '';
+  const ex = cartItems.find(c=>c.id===toneActual.id);
+  if(ex){ ex.qty++; } else {
+    cartItems.push({id:toneActual.id, name:toneActual.nombre, brand:toneActual.marca, img:img, variant:'Estándar', qty:1});
+  }
+  updateCartBadge();
+  const cb=document.getElementById('toneCartB'); cb.innerHTML='✓ Agregado'; cb.classList.add('ok');
+  setTimeout(()=>{ cb.innerHTML='🛒 Agregar al pedido'; cb.classList.remove('ok'); }, 1200);
 }
 function closeLB(){
   document.getElementById('lb').classList.remove('open');
