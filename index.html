@@ -1219,38 +1219,26 @@ async function loadFromSupabase(){
 
     // ── COLECCIONES TEMÁTICAS (híbrido) ──
     // Estas colecciones SÍ muestran una caja/portada que abre un carrusel,
-    // porque su NOMBRE genera deseo (gancho de marketing).
-    // El resto de "colecciones" son solo organizativas → se muestran como
-    // productos individuales directos (sin caja).
-    // Para agregar/quitar: edita esta lista (usa el slug en minúsculas y con guiones).
-    const COLECCIONES_TEMATICAS = [
-      'signos-del-zodiaco',
-      'cocteles',
-      'desiertos-de-colombia',
-      'pecados',
-      'cano-cristales',
-      'glitter',
-      'cristal',
-      'nude',
-      'oro-rosa',
-      'metallic',
-      'coral',
-      'zafari',
-      'checo-teens',
-      'efecto-gel',
-      'b-life-color',
-      'tonos-clasicos'
-    ];
-    // Normaliza un texto a slug (minúsculas, sin tildes/ñ, con guiones)
-    // para comparar sin depender del formato exacto guardado en Supabase.
+    // ── COLECCIONES AUTOMÁTICAS (Camino B) ──
+    // Una colección se muestra como CAJA (cuadrícula de tonos) cuando tiene 2+ productos.
+    // Si tiene 1 solo producto, ese producto sale como tarjeta individual.
+    // Así, cualquier colección que crees/edites en el admin se refleja sola,
+    // sin listas fijas ni configuración manual.
     const aSlug = (t) => (t || '')
       .toString().toLowerCase().trim()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // quita tildes
       .replace(/ñ/g, 'n')
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+    // Contamos cuántos productos hay en cada colección
+    const conteoColeccion = {};
+    data.forEach(prod => {
+      const s = aSlug(prod.coleccion_slug || prod.coleccion);
+      if (s) conteoColeccion[s] = (conteoColeccion[s] || 0) + 1;
+    });
     const esTematica = (prod) => {
       const s = aSlug(prod.coleccion_slug || prod.coleccion);
-      return s && COLECCIONES_TEMATICAS.includes(s);
+      return s && conteoColeccion[s] >= 2;
     };
 
     // Agrupamos por (marca + categoría + colección) para construir las "tarjetas agrupadas"
@@ -1766,12 +1754,6 @@ function openLB(idx){
   } else if (p.productosInternos && p.productosInternos.length > 0 && PI.length > 0){
     // Tomamos los productos individuales de esta colección
     const productosIndividuales = PI.filter(pi => p.productosInternos.includes(pi.id));
-
-    // Verificamos si TIENEN colores hex (esmaltes, tintes, etc.)
-    const tienenColor = productosIndividuales.some(pi => {
-      const pres = pi.presentaciones && pi.presentaciones[0];
-      return pres && pres.color_chip;
-    });
 
     if (productosIndividuales.length >= 1){
       // TODAS las colecciones se muestran como cuadrícula de tonos (chips de color)
