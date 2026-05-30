@@ -357,7 +357,9 @@ body{
 
 /* ══ TONOS DE COLECCIÓN (chips de color hex) ══ */
 .tone-grid{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(72px,1fr));
+  gap:10px;justify-content:center;
   margin:14px 0 6px;
 }
 .tone-card{
@@ -1135,7 +1137,8 @@ async function loadFromSupabase(){
       'zafari',
       'checo-teens',
       'efecto-gel',
-      'b-life-color'
+      'b-life-color',
+      'tonos-clasicos'
     ];
     // Normaliza un texto a slug (minúsculas, sin tildes/ñ, con guiones)
     // para comparar sin depender del formato exacto guardado en Supabase.
