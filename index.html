@@ -1307,7 +1307,7 @@ async function loadFromSupabase(){
         coleccion_slug: grupo.coleccion_slug,
         categoria_slug: grupo.categoria_slug,
         categoria_nombre: grupo.categoria,  // Necesario para renderizar filtros dinámicos
-        wide: grupo.productos.length >= 8  // tarjeta ancha si tiene muchos productos
+        wide: grupo.productos.length >= 2  // tarjeta ancha para TODAS las cajas de colección (2+ productos)
       });
     });
 
