@@ -296,6 +296,15 @@ body{
   max-width:430px;margin:0 auto;
 }
 #lb.open{display:flex}
+.lb-x-float{
+  position:absolute;top:16px;right:16px;z-index:30;
+  width:42px;height:42px;border-radius:50%;border:none;cursor:pointer;
+  background:rgba(30,22,18,.6);backdrop-filter:blur(6px);
+  color:#fff;font-size:18px;line-height:1;
+  box-shadow:0 4px 16px rgba(0,0,0,.35);transition:.15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.lb-x-float:active{transform:scale(.9)}
 #toneLB{
   position:fixed;inset:0;z-index:420;
   background:rgba(38,28,24,.78);backdrop-filter:blur(8px);
@@ -997,6 +1006,7 @@ html[data-tema-promos="spa"] #promoLB{
 
 <!-- LIGHTBOX -->
 <div id="lb" onclick="lbBg(event)">
+  <button class="lb-x-float" onclick="closeLB()" aria-label="Cerrar">✕</button>
   <div class="lb-sheet">
     <div class="lb-handle"></div>
     <button class="lb-x" onclick="closeLB()">✕</button>
@@ -1763,18 +1773,19 @@ function openLB(idx){
       return pres && pres.color_chip;
     });
 
-    if (tienenColor && productosIndividuales.length > 1){
-      // Renderizamos los tonos como chips de color hex
+    if (productosIndividuales.length >= 1){
+      // TODAS las colecciones se muestran como cuadrícula de tonos (chips de color)
       lbVarsEl.innerHTML = `<div class="tone-grid">` +
         productosIndividuales.map((pi, i) => {
           const pres = pi.presentaciones && pi.presentaciones[0];
-          const hex = pres && pres.color_chip ? pres.color_chip : 'B0BEC5';
+          let hex = pres && pres.color_chip ? pres.color_chip : '#E8DFD2';
+          if (hex.charAt(0) !== '#') hex = '#' + hex;
           // Extraer nombre corto del tono (sin "Esmalte #88")
           const nombreLimpio = pi.nombre.replace(/^Esmalte\s*#?\d+\s*/, '').replace(/^Tinte\s+Matizze\s+/, '').replace(/^B\.Life\s+Color\s+/, 'B.Life ').replace(/^Tono\s+sobre\s+Tono\s+/, '');
           // Extraer número/código del SKU
           const codigo = pi.sku ? pi.sku.split('-').pop() : '';
           return `<div class="tone-card" onclick="toggleToneSelect(this, '${pi.id}')">
-                    <div class="tone-chip" style="background:#${hex}"></div>
+                    <div class="tone-chip" style="background:${hex}"></div>
                     <div class="tone-name">${nombreLimpio}</div>
                     <div class="tone-sku">${codigo}</div>
                   </div>`;
