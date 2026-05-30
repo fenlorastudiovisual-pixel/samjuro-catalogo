@@ -1598,7 +1598,7 @@ function openLB(idx){
   let presIndiv = null;
   if (p.productosInternos && p.productosInternos.length === 1 && PI.length > 0){
     const pi = PI.find(x => x.id === p.productosInternos[0]);
-    if (pi && Array.isArray(pi.presentaciones) && pi.presentaciones.length > 1){
+    if (pi && Array.isArray(pi.presentaciones) && pi.presentaciones.length >= 1){
       presIndiv = pi.presentaciones;
     }
   }
