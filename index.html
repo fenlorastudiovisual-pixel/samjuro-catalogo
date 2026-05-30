@@ -1580,11 +1580,35 @@ function openLB(idx){
   const p=P.find(x=>x.id===idx); if(!p) return;
   curSlide=0;
   lbFav = favItems.some(f=>f.id===idx);
-  document.getElementById('lbSlides').innerHTML=
-    p.imgs.map(src=>`<div class="lb-slide"><img src="${src}" alt="" onerror="this.src='https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&q=80'"></div>`).join('');
+
+  // ── Detectar producto INDIVIDUAL con varias presentaciones ──
+  // (una sola tarjeta = un producto, con presentaciones tipo tamaños 60ml/250ml…)
+  let presIndiv = null;
+  if (p.productosInternos && p.productosInternos.length === 1 && PI.length > 0){
+    const pi = PI.find(x => x.id === p.productosInternos[0]);
+    if (pi && Array.isArray(pi.presentaciones) && pi.presentaciones.length > 1){
+      presIndiv = pi.presentaciones;
+    }
+  }
+
+  if (presIndiv){
+    // Carrusel: una imagen por presentación (su imagen_url, o genérica si está vacía)
+    const fallback = p.imgs[0];
+    document.getElementById('lbSlides').innerHTML =
+      presIndiv.map(pr=>{
+        const src = (pr.imagen_url && pr.imagen_url.trim()) ? pr.imagen_url : fallback;
+        return `<div class="lb-slide"><img src="${src}" alt="" onerror="this.src='${fallback}'"></div>`;
+      }).join('');
+    document.getElementById('lbDots').innerHTML =
+      presIndiv.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
+  } else {
+    // Comportamiento original (genéricas por categoría)
+    document.getElementById('lbSlides').innerHTML=
+      p.imgs.map(src=>`<div class="lb-slide"><img src="${src}" alt="" onerror="this.src='https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&q=80'"></div>`).join('');
+    document.getElementById('lbDots').innerHTML=
+      p.imgs.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
+  }
   document.getElementById('lbSlides').style.transform='translateX(0)';
-  document.getElementById('lbDots').innerHTML=
-    p.imgs.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
   const bEl=document.getElementById('lbBrand');
   bEl.textContent=p.brandLabel;
   bEl.className='lb-brand-lbl '+(p.brand==='checo'?'checo':'mat');
@@ -1598,7 +1622,15 @@ function openLB(idx){
   // ── TONOS INDIVIDUALES (productos hijos con color_chip) ──
   // Si la tarjeta tiene productosInternos (viene de Supabase), mostramos chips de color en lugar de las "vars"
   const lbVarsEl = document.getElementById('lbVars');
-  if (p.productosInternos && p.productosInternos.length > 0 && PI.length > 0){
+  if (presIndiv){
+    // Producto individual con varias presentaciones → botones que saltan a su imagen
+    lbVarsEl.innerHTML = presIndiv.map((pr,i)=>{
+      const etiqueta = pr.nombre
+        ? (/^\d+$/.test(String(pr.nombre).trim()) ? pr.nombre+' ml' : pr.nombre)
+        : (pr.volumen_ml ? pr.volumen_ml+' ml' : 'Opción '+(i+1));
+      return `<div class="lv${i===0?' on':''}" onclick="goSlide(${i})">${etiqueta}</div>`;
+    }).join('');
+  } else if (p.productosInternos && p.productosInternos.length > 0 && PI.length > 0){
     // Tomamos los productos individuales de esta colección
     const productosIndividuales = PI.filter(pi => p.productosInternos.includes(pi.id));
 
@@ -1656,9 +1688,12 @@ function closeLB(){
 }
 function lbBg(e){if(e.target===document.getElementById('lb'))closeLB()}
 function goSlide(i){
-  curSlide=Math.max(0,Math.min(i,2));
+  const total=document.getElementById('lbSlides').children.length||1;
+  curSlide=Math.max(0,Math.min(i,total-1));
   document.getElementById('lbSlides').style.transform=`translateX(-${curSlide*100}%)`;
   document.querySelectorAll('.ld').forEach((d,j)=>d.classList.toggle('on',j===curSlide));
+  // Sincroniza la presentación marcada con el slide actual (carrusel → botón)
+  document.querySelectorAll('#lbVars .lv').forEach((v,j)=>v.classList.toggle('on',j===curSlide));
 }
 function slide(dir){goSlide(curSlide+dir)}
 let tx=0;
