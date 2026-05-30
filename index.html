@@ -1185,6 +1185,17 @@ async function loadFromSupabase(){
         || (primerProd.descripcion_larga ? primerProd.descripcion_larga.substring(0, 180) + '...' : '')
         || `${grupo.productos.length} producto(s) disponible(s) en esta colección.`;
 
+      // Imágenes reales del producto (solo para productos individuales):
+      // imagen_principal + galería 'imagenes'. Si no hay, quedará null y se usan las genéricas.
+      let imgsReales = null;
+      if (grupo.productos.length === 1){
+        const pr0 = grupo.productos[0];
+        const lista = [];
+        if (pr0.imagen_principal && pr0.imagen_principal.trim()) lista.push(pr0.imagen_principal.trim());
+        if (Array.isArray(pr0.imagenes)) pr0.imagenes.forEach(u => { if (u && u.trim()) lista.push(u.trim()); });
+        if (lista.length > 0) imgsReales = lista;
+      }
+
       P.push({
         id: id++,
         ...tarjeta,
@@ -1193,6 +1204,7 @@ async function loadFromSupabase(){
         stars: 5,
         reviews: grupo.productos.length * 10 + 50,  // pseudo-reviews proporcional
         desc: desc,
+        imgsReales: imgsReales,  // fotos propias del producto (o null)
         // Guardamos los IDs de productos individuales que pertenecen a esta tarjeta
         productosInternos: grupo.productos.map(p => p.id),
         coleccion: grupo.coleccion,
@@ -1602,11 +1614,14 @@ function openLB(idx){
     document.getElementById('lbDots').innerHTML =
       presIndiv.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
   } else {
-    // Comportamiento original (genéricas por categoría)
+    // Producto sin presentaciones múltiples:
+    // usa sus fotos propias (principal + galería) si las tiene; si no, las genéricas.
+    const fuente = (p.imgsReales && p.imgsReales.length > 0) ? p.imgsReales : p.imgs;
+    const fb = p.imgs[0];
     document.getElementById('lbSlides').innerHTML=
-      p.imgs.map(src=>`<div class="lb-slide"><img src="${src}" alt="" onerror="this.src='https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&q=80'"></div>`).join('');
+      fuente.map(src=>`<div class="lb-slide"><img src="${src}" alt="" onerror="this.src='${fb}'"></div>`).join('');
     document.getElementById('lbDots').innerHTML=
-      p.imgs.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
+      fuente.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
   }
   document.getElementById('lbSlides').style.transform='translateX(0)';
   const bEl=document.getElementById('lbBrand');
