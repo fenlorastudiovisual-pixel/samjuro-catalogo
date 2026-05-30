@@ -1114,20 +1114,56 @@ async function loadFromSupabase(){
     // Guardamos los 305 productos individuales
     PI = data;
 
+    // ── COLECCIONES TEMÁTICAS (híbrido) ──
+    // Estas colecciones SÍ muestran una caja/portada que abre un carrusel,
+    // porque su NOMBRE genera deseo (gancho de marketing).
+    // El resto de "colecciones" son solo organizativas → se muestran como
+    // productos individuales directos (sin caja).
+    // Para agregar/quitar: edita esta lista (usa el slug en minúsculas y con guiones).
+    const COLECCIONES_TEMATICAS = [
+      'signos-del-zodiaco',
+      'cocteles',
+      'desiertos-de-colombia',
+      'pecados',
+      'cano-cristales',
+      'glitter',
+      'cristal',
+      'nude',
+      'oro-rosa',
+      'metallic',
+      'coral',
+      'zafari',
+      'checo-teens',
+      'efecto-gel',
+      'b-life-color'
+    ];
+    // Normaliza un texto a slug (minúsculas, sin tildes/ñ, con guiones)
+    // para comparar sin depender del formato exacto guardado en Supabase.
+    const aSlug = (t) => (t || '')
+      .toString().toLowerCase().trim()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // quita tildes
+      .replace(/ñ/g, 'n')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const esTematica = (prod) => {
+      const s = aSlug(prod.coleccion_slug || prod.coleccion);
+      return s && COLECCIONES_TEMATICAS.includes(s);
+    };
+
     // Agrupamos por (marca + categoría + colección) para construir las "tarjetas agrupadas"
     const grupos = new Map();
     data.forEach(prod => {
-      // CON colección  → una tarjeta por colección (paleta de tonos)
-      // SIN colección   → cada producto es su propia tarjeta individual
-      const clave = prod.coleccion_slug
-        ? `${prod.marca_slug}|col-${prod.coleccion_slug}`
+      // Colección TEMÁTICA  → una caja por colección (carrusel de tonos)
+      // Colección organizativa o SIN colección → cada producto es su propia tarjeta
+      const tematica = esTematica(prod);
+      const clave = tematica
+        ? `${prod.marca_slug}|col-${aSlug(prod.coleccion_slug || prod.coleccion)}`
         : `prod-${prod.id}`;
       if (!grupos.has(clave)) {
         grupos.set(clave, {
           marca: prod.marca,
           categoria: prod.categoria,
-          coleccion: prod.coleccion,
-          coleccion_slug: prod.coleccion_slug,
+          coleccion: tematica ? prod.coleccion : null,
+          coleccion_slug: tematica ? prod.coleccion_slug : null,
           categoria_slug: prod.categoria_slug,
           productos: []
         });
