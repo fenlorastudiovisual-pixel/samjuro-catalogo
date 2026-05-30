@@ -806,6 +806,20 @@ html[data-tema-promos="spa"] #promoLB{
   --plb-ph-matizze:linear-gradient(150deg,#f3e8df,#e6d2c4);
 }
 
+/* ====== SOLO TABLET (no afecta móvil ni PC) ======
+   Ensancha la columna centrada de 430px a 820px entre 768px y 1023px. */
+@media (min-width:768px) and (max-width:1023px){
+  body, .topnav, .search-ov, .page, .botnav,
+  #lb, #cartPanel, #profilePanel, #favsPanel, #wompiModal{
+    max-width:820px !important;
+  }
+  /* 3 productos por fila solo en tablet */
+  .pgrid{ grid-template-columns:1fr 1fr 1fr !important; }
+  .pc.wide{ grid-column:span 2 !important; }
+  /* Lightbox de promos más grande y centrado en tablet */
+  #promoLB{ align-items:center !important; }
+  .plb-card{ max-width:680px !important; max-height:88vh !important; border-radius:20px !important; }
+}
 </style>
 </head>
 <body>
