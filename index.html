@@ -1313,22 +1313,23 @@ async function loadFromSupabase(){
       });
     });
 
-    // Ordenar SOLO las cajas de colección entre sí, por su campo "orden" del admin.
-    // Las tarjetas mantienen su id de inserción para un orden estable.
-    P.forEach((t, i) => { t._pos = i; });
-    P.sort((a, b) => {
-      const aCol = a.productosInternos && a.productosInternos.length > 1;
-      const bCol = b.productosInternos && b.productosInternos.length > 1;
-      // Si ambas son cajas de colección → ordenar por coleccionOrden
-      if (aCol && bCol){
-        const oa = (a.coleccionOrden != null ? a.coleccionOrden : 9999);
-        const ob = (b.coleccionOrden != null ? b.coleccionOrden : 9999);
-        if (oa !== ob) return oa - ob;
-        return a._pos - b._pos;  // empate → orden original
-      }
-      // Si no, mantener el orden original
-      return a._pos - b._pos;
+    // Ordenar las tarjetas: las cajas de colección primero (por su "orden" del admin),
+    // luego los productos sueltos (en su orden natural).
+    // Se hace separando en dos listas para un resultado predecible.
+    const cajas = [];
+    const sueltos = [];
+    P.forEach((t, i) => {
+      t._pos = i;
+      const esCaja = t.productosInternos && t.productosInternos.length > 1;
+      (esCaja ? cajas : sueltos).push(t);
     });
+    cajas.sort((a, b) => {
+      const oa = (a.coleccionOrden != null ? a.coleccionOrden : 9999);
+      const ob = (b.coleccionOrden != null ? b.coleccionOrden : 9999);
+      if (oa !== ob) return oa - ob;
+      return a._pos - b._pos;  // empate → orden original
+    });
+    P = cajas.concat(sueltos);
 
     // ── MARCAS (Fase 4) ──
     // La lista de marcas SIEMPRE sale de los productos ya cargados (no puede fallar).
