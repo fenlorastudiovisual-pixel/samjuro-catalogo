@@ -164,6 +164,31 @@ body{
 }
 .fp.on{background:var(--accent-strong);color:var(--on-accent)}
 
+/* ══ PISTA "deslizá para ver más categorías" (una vez por carga) ══ */
+.filters-wrap{position:relative}
+.scroll-hint{
+  position:absolute;top:0;right:0;bottom:12px;
+  width:64px;pointer-events:none;
+  display:flex;align-items:center;justify-content:flex-end;
+  padding-right:8px;
+  /* degradado difuminado: transparente -> color de fondo, indica que hay más */
+  background:linear-gradient(to right, rgba(247,241,232,0) 0%, var(--bg,#F7F1E8) 78%);
+  opacity:0;transition:opacity .35s ease;
+}
+.scroll-hint.show{opacity:1}
+.sh-arrow{
+  font-family:'Jost',sans-serif;font-size:1.5rem;font-weight:600;line-height:1;
+  color:var(--red,#B91C2C);
+  animation:shNudge 1.25s ease-in-out infinite;
+}
+@keyframes shNudge{
+  0%,100%{transform:translateX(0);opacity:.55}
+  50%{transform:translateX(5px);opacity:1}
+}
+@media (prefers-reduced-motion:reduce){
+  .sh-arrow{animation:none}
+}
+
 /* ══ PRODUCT GRID — 2 columns ══ */
 .pgrid{
   display:grid;
@@ -1116,9 +1141,15 @@ html[data-tema-promos="spa"] #promoLB{
 
   <!-- CATALOG -->
   <div id="catalog">
-    <div class="filters" id="filterRow">
-      <button class="fp on" onclick="setF(this,'todas')">Todos</button>
-      <!-- Los demás botones se generan dinámicamente desde Supabase según la marca activa -->
+    <div class="filters-wrap">
+      <div class="filters" id="filterRow">
+        <button class="fp on" onclick="setF(this,'todas')">Todos</button>
+        <!-- Los demás botones se generan dinámicamente desde Supabase según la marca activa -->
+      </div>
+      <!-- Pista visual "deslizá para ver más" (una vez por carga, se va al hacer scroll) -->
+      <div class="scroll-hint" id="scrollHint" aria-hidden="true">
+        <span class="sh-arrow">›</span>
+      </div>
     </div>
     <button class="cc-access" id="ccAccessBtn" onclick="openCarta()" style="display:none">
       <span class="cc-ac-ic">🎨</span>
@@ -1787,10 +1818,38 @@ function renderCategoryFilters(){
     html += `<button class="fp${activo}" onclick="setF(this,'${slug}')">${nombre}</button>`;
   });
   filterRow.innerHTML = html;
+  // Reevaluar la pista "deslizá para ver más" cuando cambian las categorías
+  evaluarScrollHint();
+}
+
+// ── Pista de scroll en categorías (una vez por carga, se va al deslizar) ──
+let _scrollHintListo = false;
+function evaluarScrollHint(){
+  const row  = document.getElementById('filterRow');
+  const hint = document.getElementById('scrollHint');
+  if (!row || !hint) return;
+
+  // Registrar UNA sola vez el listener que oculta la pista al hacer scroll
+  if (!_scrollHintListo){
+    _scrollHintListo = true;
+    row.addEventListener('scroll', () => {
+      // Apenas el usuario desliza un poco, la pista desaparece
+      if (row.scrollLeft > 6) hint.classList.remove('show');
+    }, { passive: true });
+  }
+
+  // Mostrar la pista solo si de verdad hay categorías ocultas a la derecha
+  // (y solo si el usuario aún no ha deslizado). Esperamos un frame para que
+  // el navegador calcule el ancho real tras pintar los botones.
+  requestAnimationFrame(() => {
+    const hayDesborde = row.scrollWidth > row.clientWidth + 8;
+    const sinDeslizar = row.scrollLeft <= 6;
+    if (hayDesborde && sinDeslizar) hint.classList.add('show');
+    else hint.classList.remove('show');
+  });
 }
 
 function applyFilters(){
-  // Mostrar el botón "Carta de Color" solo cuando se ve la categoría Esmaltes
   const ccBtn = document.getElementById('ccAccessBtn');
   if (ccBtn){
     const enEsmaltes = (activeFilter === 'esmaltes') &&
