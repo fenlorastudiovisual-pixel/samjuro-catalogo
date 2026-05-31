@@ -973,15 +973,63 @@ html[data-tema-promos="spa"] #promoLB{
    Ensancha la columna centrada de 430px a 820px entre 768px y 1023px. */
 @media (min-width:768px) and (max-width:1023px){
   body, .topnav, .search-ov, .page, .botnav,
-  #lb, #toneLB, #cartPanel, #profilePanel, #favsPanel, #wompiModal{
+  #lb, #toneLB, #cartPanel, #profilePanel, #favsPanel, #wompiModal,
+  #cartaColor{
     max-width:820px !important;
   }
   /* 3 productos por fila solo en tablet */
   .pgrid{ grid-template-columns:1fr 1fr 1fr !important; }
-  .pc.wide{ grid-column:span 2 !important; }
+  /* Punto 1 — cajas de colección en 2 filas: que ocupen las 3 columnas
+     completas para que no quede el hueco a la derecha */
+  .pc.wide{ grid-column:span 3 !important; }
   /* Lightbox de promos más grande y centrado en tablet */
   #promoLB{ align-items:center !important; }
   .plb-card{ max-width:680px !important; max-height:88vh !important; border-radius:20px !important; }
+
+  /* ── Punto 1 — pills de marca repartidas a lo ancho, sin pegarse
+     al borde derecho (respiro visual para delimitar) ── */
+  .brand-pills{ overflow-x:visible !important; padding-right:12px !important; }
+  .brand-pills .bp{ flex:1 1 0 !important; justify-content:center !important; }
+
+  /* ── Punto 2 — Carta de Color: la grilla de chips debe usar todo el
+     ancho de la tablet (antes salía con ancho de móvil y dejaba vacíos) ── */
+  .cc-grid{ grid-template-columns:repeat(auto-fill,minmax(88px,1fr)) !important; gap:14px !important; }
+
+  /* ── Punto 3 — miniaturas dentro de una colección: más grandes y
+     menos por fila ── */
+  .tone-grid{ grid-template-columns:repeat(auto-fill,minmax(118px,1fr)) !important; gap:14px !important; }
+
+  /* ── Punto 3 — el lightbox de tono DENTRO de una colección (#toneLB)
+     pasa a verse como flotante premium (foto grande arriba), igual que
+     el de la Carta de Color, en lugar de la ficha inferior ── */
+  #toneLB{ align-items:center !important; justify-content:center !important; padding:20px !important; }
+  #toneLB .tsheet{
+    width:100% !important; max-width:360px !important;
+    border-radius:24px !important; padding:0 0 24px !important;
+    overflow:hidden !important;
+    box-shadow:0 30px 70px rgba(0,0,0,.45) !important;
+  }
+  #toneLB .tsheet-grip{ display:none !important; }
+  /* la cabecera deja de ser fila (foto izq + datos der) y pasa a columna */
+  #toneLB .tsheet-top{
+    flex-direction:column !important; gap:0 !important;
+    padding:0 0 18px !important; align-items:stretch !important;
+  }
+  /* foto grande arriba, ocupando todo el ancho */
+  #toneLB .tsheet-ph{
+    width:100% !important; height:250px !important;
+    border-radius:0 !important; box-shadow:none !important;
+    margin-bottom:18px !important;
+  }
+  /* datos centrados como en el flotante premium */
+  #toneLB .tsheet-meta{ text-align:center !important; padding:0 24px !important; }
+  #toneLB .tsheet-code{ justify-content:center !important; }
+  #toneLB .tsheet-desc{ text-align:center !important; }
+  #toneLB .tsheet-acts{ padding:0 24px !important; }
+
+  /* ── Punto 4 — el lightbox de la Carta de Color (#cartaLB) usa el ancho
+     de la tablet para quedar bien centrado (antes max-width:430px) ── */
+  #cartaLB{ max-width:820px !important; }
 }
 </style>
 </head>
