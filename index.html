@@ -477,15 +477,16 @@ body{
   width:54px;height:54px;border-radius:12px;overflow:hidden;cursor:pointer;
   border:2px solid transparent;background:#e9dfce;padding:0;flex-shrink:0;transition:.15s;
 }
-.tv-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.tv-thumb img{width:100%;height:100%;object-fit:contain;display:block}
 .tv-thumb.on{border-color:var(--red,#B91C2C)}
 .tv-thumb:active{transform:scale(.94)}
 .tone-main{
-  flex:1;position:relative;border-radius:16px;overflow:hidden;min-height:240px;
-  background:linear-gradient(160deg,#e9dfce,#d2c4ad);
+  flex:1;position:relative;border-radius:16px;overflow:hidden;
+  aspect-ratio:3/4;min-height:0;
+  background:#F1E9DC;
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.12);
 }
-.tone-main img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0}
+.tone-main img{width:100%;height:100%;object-fit:contain;display:block;position:absolute;inset:0}
 .tone-zoom{
   position:absolute;bottom:10px;right:10px;width:38px;height:38px;border-radius:50%;
   background:rgba(255,255,255,.92);border:none;color:#5a4f45;font-size:17px;cursor:pointer;
@@ -618,11 +619,12 @@ body{
   border:2px solid #FFF;box-shadow:0 0 0 1px #DDD,0 2px 6px rgba(0,0,0,.08);
 }
 .tone-thumb{
-  width:100%;aspect-ratio:1;border-radius:13px;overflow:hidden;
+  width:100%;aspect-ratio:3/4;border-radius:13px;overflow:hidden;
+  background:#F1E9DC;
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.06),0 3px 8px rgba(0,0,0,.1);
   display:flex;align-items:center;justify-content:center;
 }
-.tone-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.tone-thumb img{width:100%;height:100%;object-fit:contain;display:block}
 .tone-name{
   font-size:.65rem;font-weight:600;color:var(--ink);
   text-align:center;line-height:1.2;
@@ -1107,7 +1109,7 @@ html[data-tema-promos="spa"] #promoLB{
   #toneLB .tsheet-grip{ display:none !important; }
   /* Visor Opción A en tablet: miniaturas y imagen más grandes (pantalla amplia) */
   #toneLB .tv-thumb{ width:72px !important; height:72px !important; }
-  #toneLB .tone-main{ min-height:360px !important; }
+  #toneLB .tone-main{ min-height:0 !important; }
   #toneLB .tsheet-meta{ text-align:center !important; padding:0 24px !important; }
   #toneLB .tsheet-code{ justify-content:center !important; }
   #toneLB .tsheet-desc{ text-align:center !important; }
