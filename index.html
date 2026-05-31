@@ -184,6 +184,19 @@ body{
 .pc.wide .pc-body{padding:14px 14px;display:flex;flex-direction:column;justify-content:center}
 .pc.wide .pc-name{font-size:.9rem;margin-bottom:8px}
 
+/* ── SOLO MÓVIL — colecciones que NO son de Esmaltes se muestran angostas
+   (1 columna de la grilla de 2), con el layout normal de tarjeta.
+   Las de Esmaltes (.wide sin .wide-noesm) se quedan anchas como están. ── */
+@media (max-width:767px){
+  .pc.wide.wide-noesm{
+    grid-column:auto;
+    display:block;
+  }
+  .pc.wide.wide-noesm .pc-img{ aspect-ratio:1/1; height:auto; }
+  .pc.wide.wide-noesm .pc-body{ padding:12px 14px; display:block; }
+  .pc.wide.wide-noesm .pc-name{ font-size:.85rem; margin-bottom:0; }
+}
+
 .pc-img{
   width:100%;aspect-ratio:1/1;overflow:hidden;position:relative;
   background:var(--imgbg);
@@ -1622,7 +1635,11 @@ window.addEventListener('load',()=>{
 
 // ── RENDER ──
 function makeCard(p){
-  const wc=p.wide?' wide':'';
+  // Una caja es "wide". Si esa caja NO pertenece a la categoría Esmaltes,
+  // le añadimos 'wide-noesm' para poder mostrarla angosta SOLO en móvil
+  // (en Esmaltes se respetan los nodales: siguen anchos).
+  const esEsmaltes = Array.isArray(p.cats) && p.cats.includes('esmaltes');
+  const wc = p.wide ? (esEsmaltes ? ' wide' : ' wide wide-noesm') : '';
   const bc=p.brand==='checo'?'checo':'mat';
   const portada = (p.coleccionPortada && p.coleccionPortada.trim()) ? p.coleccionPortada : p.imgs[0];
   return `<div class="pc${wc}" onclick="openLB(${p.id})">
