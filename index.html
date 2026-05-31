@@ -1377,6 +1377,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 let P = [];   // Tarjetas agrupadas que ve el cliente en el grid
 let PI = [];  // Productos individuales completos (con presentaciones, colores hex, etc.)
 let MARCAS_META = {}; // Detalles de marca (emoji/eslogan/color/desc) leídos de la tabla marcas, indexados por slug
+let CATEGORIAS_ORDEN = {}; // slug de categoría → número de orden (definido en el admin)
 
 // Mapeo de slugs de colección/categoría → metadata visual de tarjeta
 function mapearTarjeta(coleccion, marca, categoria, productos, categoria_slug){
@@ -1624,6 +1625,21 @@ async function loadFromSupabase(){
     renderBrandPills();
     renderProfileBrands();
 
+    // ── ORDEN DE CATEGORÍAS (definido en el admin) ──
+    // Leemos la tabla categorias para conocer el orden manual de cada una.
+    // Si falla, el catálogo cae al orden alfabético de siempre.
+    try {
+      const { data: catsData } = await sb.from('categorias').select('slug,nombre,orden');
+      if (catsData) {
+        catsData.forEach(c => {
+          const slug = (c.slug || c.nombre || '').toLowerCase();
+          if (slug && c.orden != null) CATEGORIAS_ORDEN[slug] = c.orden;
+        });
+      }
+    } catch(e) {
+      console.warn('No se pudo leer el orden de categorías (se usa orden alfabético):', e);
+    }
+
     // ── PROMOCIONES (lightbox) ──
     // Leemos solo las activas, ordenadas. Si la lectura falla, el catálogo
     // simplemente no muestra promos (se ve como siempre).
@@ -1846,9 +1862,16 @@ function renderCategoryFilters(){
     }
   });
 
-  // Ordenar alfabéticamente por nombre para consistencia
+  // Ordenar por el orden manual definido en el admin (CATEGORIAS_ORDEN).
+  // Las que tengan orden van primero (menor número = primero). Las que no
+  // tengan orden van después, alfabéticamente.
   const categoriasOrdenadas = Array.from(categoriasMap.entries())
-    .sort((a, b) => a[1].localeCompare(b[1], 'es'));
+    .sort((a, b) => {
+      const oa = (CATEGORIAS_ORDEN[a[0]] != null) ? CATEGORIAS_ORDEN[a[0]] : 9999;
+      const ob = (CATEGORIAS_ORDEN[b[0]] != null) ? CATEGORIAS_ORDEN[b[0]] : 9999;
+      if (oa !== ob) return oa - ob;
+      return a[1].localeCompare(b[1], 'es');
+    });
 
   // Construir HTML: botón "Todos" siempre primero + un botón por categoría
   let html = `<button class="fp${activeFilter==='todas'?' on':''}" onclick="setF(this,'todas')">Todos</button>`;
