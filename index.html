@@ -1056,10 +1056,13 @@ html[data-tema-promos="spa"] #promoLB{
   #cartaColor{
     max-width:820px !important;
   }
-  /* 3 productos por fila solo en tablet */
-  .pgrid{ grid-template-columns:1fr 1fr 1fr !important; }
-  /* Punto 1 — cajas de colección en 2 filas: que ocupen las 3 columnas
-     completas para que no quede el hueco a la derecha */
+  /* Grilla de 6 columnas en tablet: múltiplo de 2 y 3, permite combinar
+     productos normales (3 por fila) con cajas de colección (2 por fila). */
+  .pgrid{ grid-template-columns:repeat(6,1fr) !important; }
+  /* Producto normal = 2 de 6 columnas → 3 por fila (igual que antes) */
+  .pc{ grid-column:span 2 !important; }
+  /* Caja de colección de esmaltes = 3 de 6 columnas → media pantalla,
+     2 colecciones por fila (ej. Tonos Clásicos | Encantada). */
   .pc.wide{ grid-column:span 3 !important; min-height:240px !important; }
   /* Formato de imagen de la caja de colección: que NO se aplaste.
      Antes usaba height:100% sobre una caja baja → imagen apaisada y deformada.
@@ -1088,23 +1091,25 @@ html[data-tema-promos="spa"] #promoLB{
      el de la Carta de Color, en lugar de la ficha inferior ── */
   #toneLB{ align-items:center !important; justify-content:center !important; padding:20px !important; }
   #toneLB .tsheet{
-    width:100% !important; max-width:360px !important;
-    border-radius:24px !important; padding:0 0 24px !important;
+    width:100% !important; max-width:520px !important;
+    border-radius:24px !important; padding:0 0 28px !important;
     overflow:hidden !important;
     box-shadow:0 30px 70px rgba(0,0,0,.45) !important;
   }
   #toneLB .tsheet-grip{ display:none !important; }
-  /* Visor Opción A en tablet: miniaturas un poco más grandes, imagen más alta */
-  #toneLB .tv-thumb{ width:64px !important; height:64px !important; }
-  #toneLB .tone-main{ min-height:300px !important; }
+  /* Visor Opción A en tablet: miniaturas y imagen más grandes (pantalla amplia) */
+  #toneLB .tv-thumb{ width:72px !important; height:72px !important; }
+  #toneLB .tone-main{ min-height:360px !important; }
   #toneLB .tsheet-meta{ text-align:center !important; padding:0 24px !important; }
   #toneLB .tsheet-code{ justify-content:center !important; }
   #toneLB .tsheet-desc{ text-align:center !important; }
   #toneLB .tsheet-acts{ padding:0 24px !important; }
 
   /* ── Punto 4 — el lightbox de la Carta de Color (#cartaLB) usa el ancho
-     de la tablet para quedar bien centrado (antes max-width:430px) ── */
+     de la tablet para quedar bien centrado, y su tarjeta interna se agranda
+     (antes la tarjeta quedaba en 360px = tamaño móvil, se veía chica) ── */
   #cartaLB{ max-width:820px !important; }
+  #cartaLB .ctone-card{ max-width:520px !important; }
 
   /* El carrusel del lightbox de producto (#lb) más alto en tablet, para que
      la imagen no quede apaisada al ocupar los 820px de ancho */
