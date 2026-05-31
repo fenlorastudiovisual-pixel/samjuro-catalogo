@@ -189,12 +189,13 @@ body{
    Las de Esmaltes (.wide sin .wide-noesm) se quedan anchas como están. ── */
 @media (max-width:767px){
   .pc.wide.wide-noesm{
-    grid-column:auto;
-    display:block;
+    grid-column:auto !important;
+    display:block !important;
+    grid-template-columns:none !important;
   }
-  .pc.wide.wide-noesm .pc-img{ aspect-ratio:1/1; height:auto; }
-  .pc.wide.wide-noesm .pc-body{ padding:12px 14px; display:block; }
-  .pc.wide.wide-noesm .pc-name{ font-size:.85rem; margin-bottom:0; }
+  .pc.wide.wide-noesm .pc-img{ aspect-ratio:1/1 !important; height:auto !important; }
+  .pc.wide.wide-noesm .pc-body{ padding:12px 14px !important; display:block !important; }
+  .pc.wide.wide-noesm .pc-name{ font-size:.85rem !important; margin-bottom:0 !important; }
 }
 
 .pc-img{
