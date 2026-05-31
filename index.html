@@ -1882,8 +1882,10 @@ function clearSearch(){
 // ── NAV ──
 function setNav(b){document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));b.classList.add('on')}
 
-// Inicio: cierra cualquier panel/overlay abierto y vuelve al catálogo.
-// Cada cierre está protegido por si la función o el elemento no existe.
+// Inicio: cierra cualquier panel/overlay abierto y refresca el catálogo
+// al estado inicial (marca "Todas" + categoría "Todos"), SIN recargar la
+// página — así el intro/splash NO se vuelve a mostrar.
+// Cada paso está protegido por si la función o el elemento no existe.
 function goHome(){
   try { if (typeof closeCart === 'function') closeCart(); } catch(e){}
   try { if (typeof closeProfile === 'function') closeProfile(); } catch(e){}
@@ -1901,6 +1903,22 @@ function goHome(){
       clearSearch();
     }
   } catch(e){}
+
+  // Refrescar el catálogo al estado de arranque (sin recargar la página):
+  // volver a marca "Todas" y categoría "Todos", regenerar filtros y aplicar.
+  try {
+    if (typeof activeBrand !== 'undefined') activeBrand = 'todas';
+    if (typeof activeFilter !== 'undefined') activeFilter = 'todas';
+    // Marcar la pill "Todas" como activa en la UI
+    const pills = document.querySelectorAll('.bp');
+    pills.forEach(b => b.classList.remove('on'));
+    const pillTodas = document.querySelector('.bp[data-brand="todas"]');
+    if (pillTodas) pillTodas.classList.add('on');
+    // Regenerar los filtros de categoría y volver a renderizar la grilla
+    if (typeof renderCategoryFilters === 'function') renderCategoryFilters();
+    if (typeof applyFilters === 'function') applyFilters();
+  } catch(e){}
+
   // Restaurar el scroll del body y subir arriba del todo
   document.body.style.overflow='';
   window.scrollTo({ top: 0, behavior: 'smooth' });
