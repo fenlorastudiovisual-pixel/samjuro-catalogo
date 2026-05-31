@@ -1919,9 +1919,19 @@ function goHome(){
     if (typeof applyFilters === 'function') applyFilters();
   } catch(e){}
 
-  // Restaurar el scroll del body y subir arriba del todo
+  // Restaurar el scroll del body
   document.body.style.overflow='';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Subir arriba del todo. OJO: el scroll real NO lo hace la ventana
+  // (html está en overflow:hidden), sino el contenedor .page (#mainPage).
+  // Lo hacemos instantáneo y tras el re-render para que quede exacto.
+  requestAnimationFrame(() => {
+    const page = document.getElementById('mainPage');
+    if (page) page.scrollTop = 0;
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    try { window.scrollTo(0, 0); } catch(e){}
+  });
 }
 
 // ── FAV & CART ──
