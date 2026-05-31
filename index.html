@@ -1142,7 +1142,7 @@ html[data-tema-promos="spa"] #promoLB{
 
 <!-- ════ BOTTOM NAV ════ -->
 <nav class="botnav">
-  <button class="ni on" onclick="setNav(this)"><div class="ni-ic">🏠</div><div class="ni-lb">Inicio</div><div class="ni-dot"></div></button>
+  <button class="ni on" onclick="setNav(this);goHome()"><div class="ni-ic">🏠</div><div class="ni-lb">Inicio</div><div class="ni-dot"></div></button>
   <button class="ni" id="promoNavBtn" onclick="setNav(this);openPromos()" style="position:relative; display:none"><div class="ni-ic" style="position:relative">🔥<span class="promo-dot" id="promoDot" style="display:none"></span></div><div class="ni-lb">Promos</div><div class="ni-dot"></div></button>
   <button class="ni" onclick="setNav(this);toggleSearch()"><div class="ni-ic">🔍</div><div class="ni-lb">Buscar</div><div class="ni-dot"></div></button>
   <button class="ni" onclick="setNav(this);openCart()" style="position:relative"><div class="ni-ic">🛍️<span class="cart-badge" id="cartBadge">0</span></div><div class="ni-lb">Pedido</div><div class="ni-dot"></div></button>
@@ -1881,6 +1881,30 @@ function clearSearch(){
 
 // ── NAV ──
 function setNav(b){document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));b.classList.add('on')}
+
+// Inicio: cierra cualquier panel/overlay abierto y vuelve al catálogo.
+// Cada cierre está protegido por si la función o el elemento no existe.
+function goHome(){
+  try { if (typeof closeCart === 'function') closeCart(); } catch(e){}
+  try { if (typeof closeProfile === 'function') closeProfile(); } catch(e){}
+  try { if (typeof closeFavs === 'function') closeFavs(); } catch(e){}
+  try { if (typeof closePromos === 'function') closePromos(); } catch(e){}
+  try { if (typeof closeCarta === 'function') closeCarta(); } catch(e){}
+  try { if (typeof closeCartaLB === 'function') closeCartaLB(); } catch(e){}
+  try { if (typeof closeLB === 'function') closeLB(); } catch(e){}
+  try { if (typeof closeToneLB === 'function') closeToneLB(); } catch(e){}
+  // Cerrar el buscador si está abierto y limpiar resultados
+  try {
+    if (typeof searchOpen !== 'undefined' && searchOpen && typeof toggleSearch === 'function') {
+      toggleSearch();
+    } else if (typeof clearSearch === 'function') {
+      clearSearch();
+    }
+  } catch(e){}
+  // Restaurar el scroll del body y subir arriba del todo
+  document.body.style.overflow='';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 // ── FAV & CART ──
 function fav(e,b,productId){
