@@ -461,6 +461,43 @@ body{
 }
 @keyframes tsheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .tsheet-grip{width:38px;height:4px;background:#d8ccba;border-radius:4px;margin:0 auto 14px}
+
+/* ══ Visor Opción A — miniaturas en columna izquierda + imagen grande + zoom ══ */
+.tone-viewer{display:flex;gap:10px;padding:0 18px 16px;align-items:stretch}
+.tone-thumbs{display:flex;flex-direction:column;gap:8px;flex-shrink:0;width:54px}
+.tone-thumb{
+  width:54px;height:54px;border-radius:12px;overflow:hidden;cursor:pointer;
+  border:2px solid transparent;background:#e9dfce;padding:0;flex-shrink:0;transition:.15s;
+}
+.tone-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.tone-thumb.on{border-color:var(--red,#B91C2C)}
+.tone-thumb:active{transform:scale(.94)}
+.tone-main{
+  flex:1;position:relative;border-radius:16px;overflow:hidden;min-height:240px;
+  background:linear-gradient(160deg,#e9dfce,#d2c4ad);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.12);
+}
+.tone-main img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0}
+.tone-zoom{
+  position:absolute;bottom:10px;right:10px;width:38px;height:38px;border-radius:50%;
+  background:rgba(255,255,255,.92);border:none;color:#5a4f45;font-size:17px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;z-index:2;transition:.15s;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+}
+.tone-zoom:active{transform:scale(.9)}
+/* Zoom pantalla completa */
+#toneZoom{
+  position:fixed;inset:0;z-index:480;display:none;
+  align-items:center;justify-content:center;
+  background:rgba(20,14,11,.92);max-width:430px;margin:0 auto;padding:20px;
+}
+#toneZoom.open{display:flex;animation:toneFade .2s ease}
+#toneZoom img{max-width:100%;max-height:88vh;object-fit:contain;border-radius:10px}
+.tone-zoom-x{
+  position:absolute;top:16px;right:16px;width:42px;height:42px;border-radius:50%;
+  background:rgba(255,255,255,.15);border:none;color:#fff;font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
 .tsheet-top{display:flex;gap:16px;padding:0 22px 16px;align-items:center}
 .tsheet-ph{
   width:118px;height:148px;border-radius:16px;flex-shrink:0;overflow:hidden;
@@ -469,7 +506,8 @@ body{
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.12);
 }
 .tsheet-ph img{width:100%;height:100%;object-fit:cover;display:block}
-.tsheet-meta{flex:1;min-width:0}
+.tsheet-meta{flex:1;min-width:0;padding:0 22px;text-align:center}
+.tsheet-code{justify-content:center}
 .tsheet-brand{font-size:10px;letter-spacing:2px;color:var(--red);font-weight:600;text-transform:uppercase}
 .tsheet-brand.mat{color:var(--gold,#B8860B)}
 .tsheet-name{font-family:'Cormorant Garamond',serif;font-size:27px;font-weight:700;line-height:1.05;margin:3px 0 4px;color:#2A2320}
@@ -1051,18 +1089,10 @@ html[data-tema-promos="spa"] #promoLB{
     box-shadow:0 30px 70px rgba(0,0,0,.45) !important;
   }
   #toneLB .tsheet-grip{ display:none !important; }
-  /* la cabecera deja de ser fila (foto izq + datos der) y pasa a columna */
-  #toneLB .tsheet-top{
-    flex-direction:column !important; gap:0 !important;
-    padding:0 0 18px !important; align-items:stretch !important;
-  }
-  /* foto grande arriba, ocupando todo el ancho */
-  #toneLB .tsheet-ph{
-    width:100% !important; height:250px !important;
-    border-radius:0 !important; box-shadow:none !important;
-    margin-bottom:18px !important;
-  }
-  /* datos centrados como en el flotante premium */
+  /* Visor Opción A en tablet: miniaturas un poco más grandes, imagen más alta */
+  #toneLB .tone-thumbs{ width:64px !important; }
+  #toneLB .tone-thumb{ width:64px !important; height:64px !important; }
+  #toneLB .tone-main{ min-height:300px !important; }
   #toneLB .tsheet-meta{ text-align:center !important; padding:0 24px !important; }
   #toneLB .tsheet-code{ justify-content:center !important; }
   #toneLB .tsheet-desc{ text-align:center !important; }
@@ -1195,7 +1225,6 @@ html[data-tema-promos="spa"] #promoLB{
   <button class="lb-x-float" onclick="closeLB()" aria-label="Cerrar">✕</button>
   <div class="lb-sheet">
     <div class="lb-handle"></div>
-    <button class="lb-x" onclick="closeLB()">✕</button>
     <div class="lb-car" id="lbCar">
       <div class="lb-slides" id="lbSlides"></div>
       <button class="lb-arr prev" onclick="slide(-1)">‹</button>
@@ -1236,22 +1265,32 @@ html[data-tema-promos="spa"] #promoLB{
 <div id="toneLB" onclick="toneBg(event)">
   <div class="tsheet">
     <div class="tsheet-grip"></div>
-    <div class="tsheet-top">
-      <div class="tsheet-ph"><img id="toneImg" src="" alt="" onerror="this.style.display='none'"></div>
-      <div class="tsheet-meta">
-        <div class="tsheet-brand" id="toneBrand"></div>
-        <div class="tsheet-name" id="toneName"></div>
-        <div class="tsheet-code"><span id="toneNum"></span><span class="tsheet-sw" id="toneSwatch"></span></div>
-        <div class="tsheet-stars" id="toneStars"></div>
+    <!-- Visor Opción A: miniaturas en columna a la izquierda + imagen grande + zoom -->
+    <div class="tone-viewer">
+      <div class="tone-thumbs" id="toneThumbs"></div>
+      <div class="tone-main">
+        <img id="toneImg" src="" alt="" onerror="this.style.display='none'">
+        <button class="tone-zoom" id="toneZoomBtn" onclick="openToneZoom()" aria-label="Ampliar imagen"><span>⤢</span></button>
       </div>
+    </div>
+    <div class="tsheet-meta">
+      <div class="tsheet-brand" id="toneBrand"></div>
+      <div class="tsheet-name" id="toneName"></div>
+      <div class="tsheet-code"><span id="toneNum"></span><span class="tsheet-sw" id="toneSwatch"></span></div>
+      <div class="tsheet-stars" id="toneStars"></div>
     </div>
     <div class="tsheet-desc" id="toneDesc"></div>
     <div class="tsheet-acts">
       <button class="tsheet-fav" id="toneFavB" onclick="toneToggleFav()">🤍</button>
       <button class="tsheet-add" id="toneCartB" onclick="toneAddCart()">Agregar al pedido</button>
-      </div>
     </div>
   </div>
+</div>
+
+<!-- Zoom de imagen del tono (pantalla completa) -->
+<div id="toneZoom" onclick="closeToneZoom()">
+  <button class="tone-zoom-x" onclick="closeToneZoom()" aria-label="Cerrar">✕</button>
+  <img id="toneZoomImg" src="" alt="">
 </div>
 
 <!-- LIGHTBOX DETALLE DE TONO · CARTA DE COLOR (flotante premium) -->
@@ -1956,6 +1995,7 @@ function goHome(){
   try { if (typeof closeCartaLB === 'function') closeCartaLB(); } catch(e){}
   try { if (typeof closeLB === 'function') closeLB(); } catch(e){}
   try { if (typeof closeToneLB === 'function') closeToneLB(); } catch(e){}
+  try { if (typeof closeToneZoom === 'function') closeToneZoom(); } catch(e){}
   // Cerrar el buscador si está abierto y limpiar resultados
   try {
     if (typeof searchOpen !== 'undefined' && searchOpen && typeof toggleSearch === 'function') {
@@ -2152,6 +2192,7 @@ function toggleToneSelect(el, productoId){
 
 // Cambio 3: lightbox de detalle de un tono individual
 let toneActual = null;
+let toneGaleria = [];
 // ============ CARTA DE COLOR ============
 function openCarta(){
   renderCarta();
@@ -2297,11 +2338,36 @@ function abrirDetalleTono(productoId){
   const pi = PI.find(x => x.id === productoId); if(!pi) return;
   toneActual = pi;
   const pres = pi.presentaciones && pi.presentaciones[0];
-  // Imagen propia del tono (su imagen_url de presentación); si no, genérica
   const fb = (IMG.esmalte && IMG.esmalte[0]) || '';
-  const img = (pres && pres.imagen_url && pres.imagen_url.trim()) ? pres.imagen_url : fb;
+
+  // ── Galería del tono: imagen principal + imágenes adicionales ──
+  // Si no hay galería propia, se usa la imagen de la presentación o la genérica.
+  let galeria = [];
+  if (pi.imagen_principal && pi.imagen_principal.trim()) galeria.push(pi.imagen_principal.trim());
+  if (Array.isArray(pi.imagenes)) pi.imagenes.forEach(u => { if (u && u.trim()) galeria.push(u.trim()); });
+  if (galeria.length === 0 && pres && pres.imagen_url && pres.imagen_url.trim()) galeria.push(pres.imagen_url.trim());
+  if (galeria.length === 0) galeria.push(fb);
+  // Quitar duplicados conservando orden
+  galeria = galeria.filter((u,i) => galeria.indexOf(u) === i);
+  toneGaleria = galeria;
+
+  // Imagen grande = primera de la galería
   const imgEl = document.getElementById('toneImg');
-  imgEl.src = img; imgEl.onerror = function(){ this.src = fb; };
+  imgEl.style.display = '';
+  imgEl.src = galeria[0]; imgEl.onerror = function(){ this.src = fb; };
+
+  // Miniaturas: solo se muestran si hay 2+ imágenes
+  const thumbsEl = document.getElementById('toneThumbs');
+  if (galeria.length > 1){
+    thumbsEl.style.display = 'flex';
+    thumbsEl.innerHTML = galeria.map((u,i) =>
+      `<button class="tone-thumb${i===0?' on':''}" onclick="selectToneImg(${i})">`+
+      `<img src="${u}" alt="" onerror="this.src='${fb}'"></button>`
+    ).join('');
+  } else {
+    thumbsEl.style.display = 'none';
+    thumbsEl.innerHTML = '';
+  }
   // Swatch de color del tono
   const hex = (pres && pres.color_chip) ? pres.color_chip : '#B0BEC5';
   const sw = document.getElementById('toneSwatch');
@@ -2337,6 +2403,27 @@ function closeToneLB(){
   document.body.style.overflow='';
 }
 function toneBg(e){ if(e.target.id==='toneLB') closeToneLB(); }
+
+// Cambiar la imagen grande al tocar una miniatura
+function selectToneImg(i){
+  if(!toneGaleria[i]) return;
+  const fb = (IMG.esmalte && IMG.esmalte[0]) || '';
+  const imgEl = document.getElementById('toneImg');
+  imgEl.src = toneGaleria[i]; imgEl.onerror = function(){ this.src = fb; };
+  document.querySelectorAll('#toneThumbs .tone-thumb').forEach((t,idx)=>{
+    t.classList.toggle('on', idx===i);
+  });
+}
+// Ampliar la imagen grande a pantalla completa
+function openToneZoom(){
+  const src = document.getElementById('toneImg').src;
+  if(!src) return;
+  document.getElementById('toneZoomImg').src = src;
+  document.getElementById('toneZoom').classList.add('open');
+}
+function closeToneZoom(){
+  document.getElementById('toneZoom').classList.remove('open');
+}
 function toneToggleFav(){
   if(!toneActual) return;
   const i = favItems.findIndex(f=>f.id===toneActual.id);
