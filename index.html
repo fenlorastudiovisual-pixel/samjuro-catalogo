@@ -1427,7 +1427,13 @@ async function loadFromSupabase(){
     });
     const esTematica = (prod) => {
       const s = aSlug(prod.coleccion_slug || prod.coleccion);
-      return s && conteoColeccion[s] >= 2;
+      // Solo se agrupan en caja (cuadrícula de tonos) las colecciones de
+      // la categoría ESMALTES. En cualquier otra categoría, cada producto
+      // es una tarjeta suelta con su propio carrusel de presentaciones,
+      // aunque comparta el nombre de colección con otro producto.
+      const catSlug = aSlug(prod.categoria_slug || prod.categoria);
+      const esEsmaltes = catSlug === 'esmaltes';
+      return esEsmaltes && s && conteoColeccion[s] >= 2;
     };
 
     // Agrupamos por (marca + categoría + colección) para construir las "tarjetas agrupadas"
