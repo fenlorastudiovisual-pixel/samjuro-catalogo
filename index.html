@@ -235,12 +235,15 @@ body{
 
 .pc-img{
   width:100%;aspect-ratio:1/1;overflow:hidden;position:relative;
-  background:var(--imgbg);
+  background:#F1E9DC;
 }
 .pc-img img{
-  width:100%;height:100%;object-fit:cover;display:block;
+  width:100%;height:100%;object-fit:contain;display:block;
   transition:transform .4s;
 }
+/* La portada de la caja de colección sí llena (cover) — es la "tapa", no el producto */
+.pc.wide .pc-img{background:var(--imgbg)}
+.pc.wide .pc-img img{object-fit:cover}
 .pc:active .pc-img img{transform:scale(1.06)}
 
 .pc-tag{
@@ -553,10 +556,10 @@ body{
   border-radius:50%;background:#f0f0f0;border:none;cursor:pointer;
   font-size:.85rem;display:flex;align-items:center;justify-content:center;z-index:5;
 }
-.lb-car{width:100%;height:260px;overflow:hidden;position:relative;touch-action:pan-y}
+.lb-car{width:100%;aspect-ratio:1/1;height:auto;overflow:hidden;position:relative;touch-action:pan-y;background:#F1E9DC}
 .lb-slides{display:flex;height:100%;transition:transform .32s cubic-bezier(.22,1,.36,1)}
 .lb-slide{flex-shrink:0;width:100%;height:100%}
-.lb-slide img{width:100%;height:100%;object-fit:cover;display:block}
+.lb-slide img{width:100%;height:100%;object-fit:contain;display:block}
 .lb-arr{
   position:absolute;top:50%;transform:translateY(-50%);
   width:32px;height:32px;background:rgba(255,255,255,.88);
@@ -1155,7 +1158,7 @@ html[data-tema-promos="spa"] #promoLB{
 
   /* El carrusel del lightbox de producto (#lb) más alto en tablet, para que
      la imagen no quede apaisada al ocupar los 820px de ancho */
-  .lb-car{ height:360px !important; }
+  .lb-car{ aspect-ratio:1/1 !important; height:auto !important; }
 }
 </style>
 </head>
