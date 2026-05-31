@@ -2149,9 +2149,13 @@ function openLB(idx){
           const pres = pi.presentaciones && pi.presentaciones[0];
           let hex = pres && pres.color_chip ? pres.color_chip : '#E8DFD2';
           if (hex.charAt(0) !== '#') hex = '#' + hex;
-          // Imagen real del esmalte (su presentación); si no hay, genérica de esmalte
+          // Imagen del tono para la cuadrícula: usa la 'Imagen principal'
+          // (el mismo campo que el visor grande). Si no hay, cae a la imagen
+          // de la presentación, y si tampoco, a la genérica de esmalte.
           const fbImg = (IMG.esmalte && IMG.esmalte[0]) || '';
-          const img = (pres && pres.imagen_url && pres.imagen_url.trim()) ? pres.imagen_url : fbImg;
+          const img = (pi.imagen_principal && pi.imagen_principal.trim()) ? pi.imagen_principal.trim()
+                    : (pres && pres.imagen_url && pres.imagen_url.trim()) ? pres.imagen_url.trim()
+                    : fbImg;
           // Extraer nombre corto del tono (sin "Esmalte #88")
           const nombreLimpio = pi.nombre.replace(/^Esmalte\s*#?\d+\s*/, '').replace(/^Tinte\s+Matizze\s+/, '').replace(/^B\.Life\s+Color\s+/, 'B.Life ').replace(/^Tono\s+sobre\s+Tono\s+/, '');
           // Extraer número/código del SKU
