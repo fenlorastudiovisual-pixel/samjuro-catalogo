@@ -1773,6 +1773,11 @@ function aplicarTemaPromos(tema){
 
 // ── SPLASH ──
 window.addEventListener('load',()=>{
+  // Recuperar carrito y favoritos guardados (por si hubo recarga o corte de internet)
+  cargarGuardados();
+  try { updateCartBadge(); } catch(e){}
+  try { updateFavBadge(); } catch(e){}
+
   // Disparar carga desde Supabase tan pronto como sea posible (en paralelo con el splash)
   loadFromSupabase();
 
@@ -2666,6 +2671,29 @@ function openWA(){
 // ── CART DATA ──
 let cartItems = [];
 
+// ── AUTOGUARDADO (carrito + favoritos en el navegador) ──
+// Guarda una copia local para que el pedido NO se pierda si se cae el internet
+// o se recarga la página. Si el navegador bloquea localStorage, el catálogo
+// sigue funcionando normal (solo sin autoguardado).
+const SJ_CART_KEY = 'samjuro_carrito_v1';
+const SJ_FAVS_KEY = 'samjuro_favoritos_v1';
+function guardarCarrito(){
+  try { localStorage.setItem(SJ_CART_KEY, JSON.stringify(cartItems)); } catch(e){}
+}
+function guardarFavoritos(){
+  try { localStorage.setItem(SJ_FAVS_KEY, JSON.stringify(favItems)); } catch(e){}
+}
+function cargarGuardados(){
+  try {
+    const c = localStorage.getItem(SJ_CART_KEY);
+    if (c){ const arr = JSON.parse(c); if (Array.isArray(arr)) cartItems = arr; }
+  } catch(e){}
+  try {
+    const f = localStorage.getItem(SJ_FAVS_KEY);
+    if (f){ const arr = JSON.parse(f); if (Array.isArray(arr)) favItems = arr; }
+  } catch(e){}
+}
+
 function openCart(){
   renderCart();
   document.getElementById('cartPanel').classList.add('open');
@@ -2694,6 +2722,7 @@ function updateCartBadge(){
   if(total>0){ badge.textContent=total; badge.style.display='flex'; }
   else{ badge.style.display='none'; }
   cartCount = total;
+  guardarCarrito();
 }
 function renderCart(){
   const body = document.getElementById('cartBody');
@@ -2882,6 +2911,7 @@ function updateFavBadge(){
   const badge=document.getElementById('favBadge');
   if(favItems.length>0){badge.textContent=favItems.length;badge.style.display='flex';}
   else{badge.style.display='none';}
+  guardarFavoritos();
 }
 
 function renderFavs(){
