@@ -1557,15 +1557,19 @@ async function loadFromSupabase(){
       const s = aSlug(prod.coleccion_slug || prod.coleccion);
       if (s) conteoColeccion[s] = (conteoColeccion[s] || 0) + 1;
     });
+    // Colecciones (fuera de Esmaltes) que TAMBIÉN se muestran como caja.
+    // Respaldo por slug, por si la vista aún no expone 'mostrar_como_caja'.
+    const COLECCIONES_CAJA = ['removedores-de-esmalte'];
     const esTematica = (prod) => {
       const s = aSlug(prod.coleccion_slug || prod.coleccion);
-      // Solo se agrupan en caja (cuadrícula de tonos) las colecciones de
-      // la categoría ESMALTES. En cualquier otra categoría, cada producto
-      // es una tarjeta suelta con su propio carrusel de presentaciones,
-      // aunque comparta el nombre de colección con otro producto.
+      // Se agrupan en caja: las colecciones de la categoría ESMALTES, las que
+      // tengan 'mostrar_como_caja' activado en el admin, o las de la lista de
+      // respaldo. En cualquier otro caso, cada producto es una tarjeta suelta.
       const catSlug = aSlug(prod.categoria_slug || prod.categoria);
       const esEsmaltes = catSlug === 'esmaltes';
-      return esEsmaltes && s && conteoColeccion[s] >= 2;
+      const marcadaCaja = prod.mostrar_como_caja === true;
+      const enListaCaja = s && COLECCIONES_CAJA.includes(s);
+      return (esEsmaltes || marcadaCaja || enListaCaja) && s && conteoColeccion[s] >= 2;
     };
 
     // Agrupamos por (marca + categoría + colección) para construir las "tarjetas agrupadas"
