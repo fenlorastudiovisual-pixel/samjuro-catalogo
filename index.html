@@ -2406,8 +2406,10 @@ function renderCarta(){
     const nombreLimpio = (pi.nombre||'')
       .replace(/^Esmalte\s*#?\d+\s*/, '')
       .replace(/^Tono\s+sobre\s+Tono\s+/, '');
+    const fotoTono = (pres && pres.imagen_url && pres.imagen_url.trim()) ? pres.imagen_url.trim() : '';
     tonos.push({
       id: pi.id, hex, codigo,
+      img: fotoTono,
       nombre: nombreLimpio || pi.nombre || '',
       coleccion: pi.coleccion || 'Tonos Clásicos'
     });
@@ -2446,11 +2448,16 @@ function renderCarta(){
         <div class="cc-sec-count">${arr.length} ${arr.length===1?'tono':'tonos'}</div>
       </div>
       <div class="cc-grid">` +
-      arr.map(t => `<div class="cc-chip" onclick="cartaTapTono('${t.id}')">
-          <div class="cc-color" style="background:${t.hex}"><div class="shine"></div></div>
+      arr.map(t => {
+        const swatch = t.img
+          ? `<div class="cc-color" style="background-color:${t.hex};background-image:url('${t.img}');background-size:cover;background-position:center"></div>`
+          : `<div class="cc-color" style="background:${t.hex}"><div class="shine"></div></div>`;
+        return `<div class="cc-chip" onclick="cartaTapTono('${t.id}')">
+          ${swatch}
           <div class="cc-num">${t.codigo||''}</div>
           <div class="cc-name">${t.nombre}</div>
-        </div>`).join('') +
+        </div>`;
+      }).join('') +
       `</div></div>`;
   });
   cont.innerHTML = html;
