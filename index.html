@@ -2406,7 +2406,7 @@ function renderCarta(){
     const nombreLimpio = (pi.nombre||'')
       .replace(/^Esmalte\s*#?\d+\s*/, '')
       .replace(/^Tono\s+sobre\s+Tono\s+/, '');
-    const fotoTono = (pres && pres.imagen_url && pres.imagen_url.trim()) ? pres.imagen_url.trim() : '';
+    const fotoTono = (pi.imagen_tono && pi.imagen_tono.trim()) ? pi.imagen_tono.trim() : '';
     tonos.push({
       id: pi.id, hex, codigo,
       img: fotoTono,
@@ -2472,7 +2472,7 @@ function abrirDetalleTonoCarta(productoId){
   cartaToneActual = pi;
   const pres = pi.presentaciones && pi.presentaciones[0];
   const fb = (IMG.esmalte && IMG.esmalte[0]) || '';
-  const img = (pres && pres.imagen_url && pres.imagen_url.trim()) ? pres.imagen_url : fb;
+  const img = (pi.imagen_tono && pi.imagen_tono.trim()) ? pi.imagen_tono.trim() : fb;
   const imgEl = document.getElementById('ctoneImg');
   imgEl.src = img; imgEl.onerror = function(){ this.src = fb; };
   const hex = (pres && pres.color_chip) ? pres.color_chip : '#B0BEC5';
@@ -2506,13 +2506,13 @@ function cartaToggleFav(){
   const i = favItems.findIndex(f=>f.id===cartaToneActual.id);
   const pres = cartaToneActual.presentaciones && cartaToneActual.presentaciones[0];
   if(i>=0){ favItems.splice(i,1); }
-  else { favItems.push({id:cartaToneActual.id, name:cartaToneActual.nombre, brand:cartaToneActual.marca, img:(pres&&pres.imagen_url)||''}); }
+  else { favItems.push({id:cartaToneActual.id, name:cartaToneActual.nombre, brand:cartaToneActual.marca, img:(cartaToneActual.imagen_tono)||''}); }
   document.getElementById('ctoneFavB').textContent = (i>=0)?'🤍':'❤️';
 }
 function cartaAddCart(){
   if(!cartaToneActual) return;
   const pres = cartaToneActual.presentaciones && cartaToneActual.presentaciones[0];
-  const img = (pres && pres.imagen_url) ? pres.imagen_url : '';
+  const img = (cartaToneActual.imagen_tono) ? cartaToneActual.imagen_tono : '';
   const ex = cartItems.find(c=>c.id===cartaToneActual.id);
   if(ex){ ex.qty++; } else {
     cartItems.push({id:cartaToneActual.id, name:cartaToneActual.nombre, brand:cartaToneActual.marca, img:img, variant:'Estándar', qty:1});
