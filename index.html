@@ -1752,6 +1752,7 @@ async function loadFromSupabase(){
 
 // ── STATE ──
 let curSlide=0,lbFav=false,cartCount=0;
+let lbBoxMode=false, lbBoxProds=[];
 let activeBrand='todas',activeFilter='todas';
 let searchOpen=false;
 // Promociones (lightbox)
@@ -2174,11 +2175,31 @@ function openLB(idx){
     }
   }
 
-  // ¿Es una colección temática (caja con varios tonos)?
+  // ¿Es una colección? (caja con varios productos)
   const esColeccion = p.productosInternos && p.productosInternos.length > 1;
+  // ¿La colección es de la categoría ESMALTES? Solo los esmaltes usan la
+  // cuadrícula de tonos. Las cajas que NO son de esmaltes (activadas con el
+  // toggle del admin) se muestran como un CARRUSEL de productos.
+  const catSlugLB = (p.categoria_slug || '').toLowerCase();
+  const esEsmalteCat = catSlugLB === 'esmaltes';
+  const esCajaProductos = esColeccion && !esEsmalteCat;
+  lbBoxMode = false;
+  lbBoxProds = [];
 
-  if (esColeccion){
-    // Cambio 2: imagen fija interior (no carrusel) para colecciones
+  if (esCajaProductos && PI.length > 0){
+    // Caja NO-esmalte → carrusel: un slide por producto de la colección
+    lbBoxMode = true;
+    lbBoxProds = p.productosInternos.map(id => PI.find(pi => pi.id === id)).filter(Boolean);
+    const fbBox = p.imgs[0];
+    document.getElementById('lbSlides').innerHTML =
+      lbBoxProds.map(prod => {
+        const src = (prod.imagen_principal && prod.imagen_principal.trim()) ? prod.imagen_principal.trim() : fbBox;
+        return `<div class="lb-slide"><img src="${src}" alt="" onerror="this.src='${fbBox}'"></div>`;
+      }).join('');
+    document.getElementById('lbDots').innerHTML =
+      lbBoxProds.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
+  } else if (esColeccion){
+    // Esmaltes: imagen fija interior (no carrusel); la cuadrícula de tonos va abajo
     const interior = (p.coleccionInterior && p.coleccionInterior.trim()) ? p.coleccionInterior : p.imgs[0];
     document.getElementById('lbSlides').innerHTML =
       `<div class="lb-slide"><img src="${interior}" alt="" onerror="this.src='${p.imgs[0]}'"></div>`;
@@ -2217,7 +2238,11 @@ function openLB(idx){
   // ── TONOS INDIVIDUALES (productos hijos con color_chip) ──
   // Si la tarjeta tiene productosInternos (viene de Supabase), mostramos chips de color en lugar de las "vars"
   const lbVarsEl = document.getElementById('lbVars');
-  if (presIndiv){
+  if (lbBoxMode){
+    // Caja no-esmalte: el panel inferior se comporta como un producto suelto.
+    // Cada producto del carrusel muestra su nombre, descripción y presentaciones.
+    renderBoxProducto(0);
+  } else if (presIndiv){
     // Producto individual con varias presentaciones → botones que saltan a su imagen
     lbVarsEl.innerHTML = presIndiv.map((pr,i)=>{
       const etiqueta = pr.nombre
@@ -2611,8 +2636,39 @@ function goSlide(i){
   curSlide=Math.max(0,Math.min(i,total-1));
   document.getElementById('lbSlides').style.transform=`translateX(-${curSlide*100}%)`;
   document.querySelectorAll('.ld').forEach((d,j)=>d.classList.toggle('on',j===curSlide));
-  // Sincroniza la presentación marcada con el slide actual (carrusel → botón)
-  document.querySelectorAll('#lbVars .lv').forEach((v,j)=>v.classList.toggle('on',j===curSlide));
+  if (lbBoxMode){
+    // Caja no-esmalte: cada slide es un producto → refrescamos el panel inferior
+    renderBoxProducto(curSlide);
+  } else {
+    // Sincroniza la presentación marcada con el slide actual (carrusel → botón)
+    document.querySelectorAll('#lbVars .lv').forEach((v,j)=>v.classList.toggle('on',j===curSlide));
+  }
+}
+// Rellena el panel inferior con los datos del producto actual de una caja no-esmalte
+function renderBoxProducto(i){
+  const prod = lbBoxProds[i]; if(!prod) return;
+  document.getElementById('lbName').textContent = prod.nombre || '';
+  const d = prod.descripcion_corta
+    || (prod.descripcion_larga ? prod.descripcion_larga.substring(0,180)+'…' : '')
+    || '';
+  document.getElementById('lbDesc').textContent = d;
+  const lbVarsEl = document.getElementById('lbVars');
+  const pres = Array.isArray(prod.presentaciones) ? prod.presentaciones : [];
+  if (pres.length >= 1){
+    lbVarsEl.innerHTML = pres.map((pr,j)=>{
+      const etiqueta = pr.nombre
+        ? (/^\d+$/.test(String(pr.nombre).trim()) ? pr.nombre+' ml' : pr.nombre)
+        : (pr.volumen_ml ? pr.volumen_ml+' ml' : 'Opción '+(j+1));
+      return `<div class="lv${j===0?' on':''}" onclick="selVOnly(this)">${etiqueta}</div>`;
+    }).join('');
+  } else {
+    lbVarsEl.innerHTML = '';
+  }
+}
+// Selecciona una presentación (tamaño) sin mover el carrusel de productos
+function selVOnly(el){
+  document.querySelectorAll('#lbVars .lv').forEach(v=>v.classList.remove('on'));
+  el.classList.add('on');
 }
 function slide(dir){goSlide(curSlide+dir)}
 let tx=0;
@@ -2637,7 +2693,8 @@ function lbAddCart(){
   const variant = selVarEl ? selVarEl.textContent : 'Estándar';
   const pName = document.getElementById('lbName').textContent;
   const pBrand = document.getElementById('lbBrand').textContent;
-  const img = document.querySelector('#lbSlides .lb-slide img')?.src || '';
+  const slidesImgs = document.querySelectorAll('#lbSlides .lb-slide img');
+  const img = (slidesImgs[curSlide] || slidesImgs[0])?.src || '';
   const existing = cartItems.find(i=>i.name===pName && i.variant===variant);
   if(existing){ existing.qty++; } else {
     cartItems.push({id:Date.now(), name:pName, brand:pBrand, img:img, variant:variant, qty:1});
