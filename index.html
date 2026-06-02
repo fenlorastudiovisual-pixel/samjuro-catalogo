@@ -414,6 +414,9 @@ body{
 .ctone-desc{font-size:13.5px;color:#6a5d4f;line-height:1.6;margin:0 auto 14px;max-width:280px}
 .ctone-pinceles{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 0 18px}
 .cpincel{border:1px solid #d8c9b5;background:#fff;color:#6a5d4f;font-size:11px;padding:6px 12px;border-radius:999px;display:flex;align-items:center;gap:6px}
+.cpincel-btn{cursor:pointer;transition:.15s}
+.cpincel-btn:active{transform:scale(.95)}
+.cpincel.on{border-color:#8E2A2A;background:#FFF8F8;color:#8E2A2A;box-shadow:0 0 0 1px rgba(142,42,42,.4)}
 .cpincel svg{flex:0 0 auto}
 .ctone-acts{display:flex;gap:10px;align-items:center}
 .ctone-fav{width:50px;height:50px;flex-shrink:0;border-radius:14px;cursor:pointer;background:#F1E9DC;border:1px solid #E3D8C9;font-size:19px;transition:.15s}
@@ -2526,6 +2529,7 @@ function abrirDetalleTonoCarta(productoId){
   document.body.style.overflow='hidden';
 }
 let cartaToneImgs = [];
+let tonePincelIdx = {};
 const PINCEL_SVG = {
   decorativo: '<svg width="8" height="22" viewBox="0 0 44 150" aria-hidden="true"><path d="M14 4 L30 4 C31 4, 31 6, 31 8 L29 56 C28.5 62, 27 66, 22 66 C17 66, 15.5 62, 15 56 L13 8 C13 6, 13 4, 14 4 Z" fill="#6a5d4f"/><rect x="20.5" y="66" width="3" height="10" fill="#6a5d4f"/><path d="M21.2 76 L22.8 76 L22.1 144 L21.9 144 Z" fill="#6a5d4f"/></svg>',
   brocha: '<svg width="8" height="22" viewBox="0 0 40 150" aria-hidden="true"><rect x="11" y="4" width="18" height="78" rx="8" fill="#6a5d4f"/><path d="M18.5 82 L21.5 82 C21.7 90, 21.7 96, 21 102 L19 102 C18.3 96, 18.3 90, 18.5 82 Z" fill="#6a5d4f"/><path d="M20 102 C18.8 102, 17.8 103.5, 16.8 107 L13 130 C12.5 133, 13.5 135, 15.5 135 L24.5 135 C26.5 135, 27.5 133, 27 130 L23.2 107 C22.2 103.5, 21.2 102, 20 102 Z" fill="#6a5d4f"/></svg>'
@@ -2543,9 +2547,17 @@ function renderPinceles(pi, contId){
   const items = pres.filter(p => p && p.nombre && !/^\s*\d/.test(p.nombre.trim()));
   if(items.length === 0){ cont.innerHTML=''; cont.style.display='none'; return; }
   cont.style.display='flex';
-  cont.innerHTML = items.map(p =>
-    `<span class="cpincel">${pincelSvgPara(p.nombre)}${p.nombre}</span>`
-  ).join('');
+  cont.innerHTML = items.map(p => {
+    const idx = (typeof tonePincelIdx !== 'undefined' && tonePincelIdx[p.nombre] != null) ? tonePincelIdx[p.nombre] : -1;
+    const click = idx >= 0 ? ` onclick="selectToneImg(${idx});marcarPincel(this)"` : '';
+    const clickable = idx >= 0 ? ' cpincel-btn' : '';
+    return `<span class="cpincel${clickable}"${click}>${pincelSvgPara(p.nombre)}${p.nombre}</span>`;
+  }).join('');
+}
+function marcarPincel(el){
+  const cont = el.parentElement;
+  if(cont) cont.querySelectorAll('.cpincel').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
 }
 let cartaToneImgIdx = 0;
 function setCartaImg(i){
@@ -2633,6 +2645,17 @@ function abrirDetalleTono(productoId){
   let galeria = [];
   if (pi.imagen_principal && pi.imagen_principal.trim()) galeria.push(pi.imagen_principal.trim());
   if (Array.isArray(pi.imagenes)) pi.imagenes.forEach(u => { if (u && u.trim()) galeria.push(u.trim()); });
+  // Imágenes de cada presentación con nombre de pincel → se agregan y se mapea su índice
+  tonePincelIdx = {};
+  const presList = Array.isArray(pi.presentaciones) ? pi.presentaciones : [];
+  presList.forEach(p => {
+    if (p && p.nombre && !/^\s*\d/.test(p.nombre.trim()) && p.imagen_url && p.imagen_url.trim()){
+      const u = p.imagen_url.trim();
+      let idx = galeria.indexOf(u);
+      if (idx === -1){ galeria.push(u); idx = galeria.length - 1; }
+      tonePincelIdx[p.nombre] = idx;
+    }
+  });
   if (galeria.length === 0 && pres && pres.imagen_url && pres.imagen_url.trim()) galeria.push(pres.imagen_url.trim());
   if (galeria.length === 0) galeria.push(fb);
   // Quitar duplicados conservando orden
