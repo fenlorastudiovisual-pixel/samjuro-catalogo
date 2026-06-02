@@ -1354,6 +1354,7 @@ html[data-tema-promos="spa"] #promoLB{
       <div class="tsheet-stars" id="toneStars"></div>
     </div>
     <div class="tsheet-desc" id="toneDesc"></div>
+    <div class="ctone-pinceles" id="tonePinceles"></div>
     <div class="tsheet-acts">
       <button class="tsheet-fav" id="toneFavB" onclick="toneToggleFav()">🤍</button>
       <button class="tsheet-add" id="toneCartB" onclick="toneAddCart()">Agregar al pedido</button>
@@ -1382,7 +1383,6 @@ html[data-tema-promos="spa"] #promoLB{
       <div class="ctone-title" id="ctoneName"></div>
       <div class="ctone-stars" id="ctoneStars"></div>
       <div class="ctone-desc" id="ctoneDesc"></div>
-      <div class="ctone-pinceles" id="ctonePinceles"></div>
       <div class="ctone-acts">
         <button class="ctone-fav" id="ctoneFavB" onclick="cartaToggleFav()">🤍</button>
         <button class="ctone-add" id="ctoneCartB" onclick="cartaAddCart()">Agregar al pedido</button>
@@ -2519,7 +2519,6 @@ function abrirDetalleTonoCarta(productoId){
   document.getElementById('ctoneStars').textContent = st;
   document.getElementById('ctoneDesc').textContent =
     pi.descripcion_corta || pi.descripcion_larga || 'Consultá disponibilidad y cotización por WhatsApp.';
-  renderPinceles(pi);
   const fav = favItems.some(f=>f.id===pi.id);
   document.getElementById('ctoneFavB').textContent = fav ? '❤️' : '🤍';
   const cb=document.getElementById('ctoneCartB'); cb.textContent='Agregar al pedido'; cb.classList.remove('ok');
@@ -2537,8 +2536,8 @@ function pincelSvgPara(nombre){
   if (n.includes('brocha') || n.includes('pincel')) return PINCEL_SVG.brocha;
   return '';
 }
-function renderPinceles(pi){
-  const cont = document.getElementById('ctonePinceles');
+function renderPinceles(pi, contId){
+  const cont = document.getElementById(contId || 'tonePinceles');
   if(!cont) return;
   const pres = Array.isArray(pi.presentaciones) ? pi.presentaciones : [];
   const items = pres.filter(p => p && p.nombre && !/^\s*\d/.test(p.nombre.trim()));
@@ -2681,6 +2680,7 @@ function abrirDetalleTono(productoId){
   document.getElementById('toneStars').textContent = st;
   document.getElementById('toneDesc').textContent =
     pi.descripcion_corta || pi.descripcion_larga || 'Consultá disponibilidad y cotización por WhatsApp.';
+  renderPinceles(pi, 'tonePinceles');
   const fav = favItems.some(f=>f.id===pi.id);
   document.getElementById('toneFavB').textContent = fav ? '❤️' : '🤍';
   const cb=document.getElementById('toneCartB'); cb.textContent='Agregar al pedido'; cb.classList.remove('ok');
