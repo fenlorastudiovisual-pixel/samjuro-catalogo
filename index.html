@@ -1827,7 +1827,9 @@ function makeCard(p){
   const esEsmaltes = Array.isArray(p.cats) && p.cats.includes('esmaltes');
   const wc = p.wide ? (esEsmaltes ? ' wide' : ' wide wide-noesm') : '';
   const bc=p.brand==='checo'?'checo':'mat';
-  const portada = (p.coleccionPortada && p.coleccionPortada.trim()) ? p.coleccionPortada : p.imgs[0];
+  const portada = (p.coleccionPortada && p.coleccionPortada.trim()) ? p.coleccionPortada
+    : (p.imgsReales && p.imgsReales.length > 0) ? p.imgsReales[0]
+    : p.imgs[0];
   return `<div class="pc${wc}" onclick="openLB(${p.id})">
     <div class="pc-img">
       <img src="${portada}" alt="${p.name}" loading="lazy"
