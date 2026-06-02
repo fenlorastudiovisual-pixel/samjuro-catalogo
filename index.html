@@ -2230,8 +2230,8 @@ function openLB(idx){
     document.getElementById('lbSlides').innerHTML =
       `<div class="lb-slide"><img src="${interior}" alt="" onerror="this.src='${p.imgs[0]}'"></div>`;
     document.getElementById('lbDots').innerHTML = '';  // sin puntos: una sola imagen
-  } else if (presIndiv){
-    // Carrusel: una imagen por presentación (su imagen_url, o genérica si está vacía)
+  } else if (presIndiv && esEsmalteCat){
+    // ESMALTES: una imagen por presentación (su imagen_url = cada tono)
     const fallback = p.imgs[0];
     document.getElementById('lbSlides').innerHTML =
       presIndiv.map(pr=>{
@@ -2240,6 +2240,19 @@ function openLB(idx){
       }).join('');
     document.getElementById('lbDots').innerHTML =
       presIndiv.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
+  } else if (presIndiv){
+    // NO-esmalte con presentaciones: el carrusel usa las fotos PROPIAS del producto
+    // (imagen principal + galería). Si no hay, cae a la imagen de cada presentación.
+    const fallback = p.imgs[0];
+    let fuente = (p.imgsReales && p.imgsReales.length > 0) ? p.imgsReales.slice() : [];
+    if (fuente.length === 0){
+      fuente = presIndiv.map(pr => (pr.imagen_url && pr.imagen_url.trim()) ? pr.imagen_url.trim() : fallback);
+    }
+    if (fuente.length === 0) fuente = [fallback];
+    document.getElementById('lbSlides').innerHTML =
+      fuente.map(src=>`<div class="lb-slide"><img src="${src}" alt="" onerror="this.src='${fallback}'"></div>`).join('');
+    document.getElementById('lbDots').innerHTML =
+      fuente.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
   } else {
     // Producto sin presentaciones múltiples:
     // usa sus fotos propias (principal + galería) si las tiene; si no, las genéricas.
