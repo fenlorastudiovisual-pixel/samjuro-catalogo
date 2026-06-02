@@ -382,7 +382,17 @@ body{
 }
 .ctone-x:active{transform:scale(.9)}
 .ctone-hero{height:250px;position:relative;overflow:hidden;background:linear-gradient(160deg,#efe7da,#ddd0bd)}
-.ctone-hero img{width:100%;height:100%;object-fit:cover;display:block}
+.ctone-hero img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+.ctone-thumbs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:12px 16px 0}
+.ctone-thumb{width:54px;height:54px;border-radius:11px;overflow:hidden;cursor:pointer;border:2px solid transparent;background:#efe7da;transition:.15s;flex:0 0 auto;padding:0}
+.ctone-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.ctone-thumb.active{border-color:#8E2A2A}
+.ctone-thumb:active{transform:scale(.94)}
+#tonoZoom{position:fixed;inset:0;z-index:600;background:rgba(20,14,12,.92);display:none;align-items:center;justify-content:center;cursor:zoom-out;touch-action:none}
+#tonoZoom.open{display:flex}
+#tonoZoom img{max-width:none;user-select:none;-webkit-user-drag:none;transition:transform .05s linear}
+.tz-x{position:absolute;top:18px;right:18px;width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:20px;cursor:pointer;z-index:2}
+.tz-hint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:12px;letter-spacing:.04em;z-index:2}
 .ctone-swatch{
   position:absolute;top:14px;left:14px;z-index:2;
   width:34px;height:34px;border-radius:50%;
@@ -1357,10 +1367,11 @@ html[data-tema-promos="spa"] #promoLB{
   <div class="ctone-card">
     <button class="ctone-x" onclick="closeCartaLB()">✕</button>
     <div class="ctone-hero">
-      <img id="ctoneImg" src="" alt="">
+      <img id="ctoneImg" src="" alt="" onclick="tonoZoomOpen()">
       <span class="ctone-swatch" id="ctoneSwatch"></span>
       <span class="ctone-num" id="ctoneNum"></span>
     </div>
+    <div class="ctone-thumbs" id="ctoneThumbs"></div>
     <div class="ctone-info">
       <div class="ctone-brand" id="ctoneBrand"></div>
       <div class="ctone-title" id="ctoneName"></div>
@@ -1374,8 +1385,13 @@ html[data-tema-promos="spa"] #promoLB{
   </div>
 </div>
 
+<div id="tonoZoom" onclick="tonoZoomBg(event)">
+  <button class="tz-x" onclick="tonoZoomClose()">✕</button>
+  <img id="tonoZoomImg" src="" alt="">
+  <div class="tz-hint">Arrastra para mover · toca fuera para cerrar</div>
+</div>
+
 <script>
-// ── IMAGES: real, working Unsplash URLs per category ──
 const IMG = {
   esmalte:[
     'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600&q=80',
@@ -2472,9 +2488,16 @@ function abrirDetalleTonoCarta(productoId){
   cartaToneActual = pi;
   const pres = pi.presentaciones && pi.presentaciones[0];
   const fb = (IMG.esmalte && IMG.esmalte[0]) || '';
-  const img = (pi.imagen_tono && pi.imagen_tono.trim()) ? pi.imagen_tono.trim() : fb;
-  const imgEl = document.getElementById('ctoneImg');
-  imgEl.src = img; imgEl.onerror = function(){ this.src = fb; };
+  // imagen_tono puede traer varias URLs (una por línea o separadas por coma)
+  let imgs = [];
+  if (pi.imagen_tono && pi.imagen_tono.trim()){
+    imgs = pi.imagen_tono.split(/[\n,]+/).map(s=>s.trim()).filter(s=>s.length>0);
+  }
+  if (!imgs.length) imgs = [fb];
+  cartaToneImgs = imgs;
+  cartaToneImgIdx = 0;
+  setCartaImg(0);
+  renderCartaThumbs();
   const hex = (pres && pres.color_chip) ? pres.color_chip : '#B0BEC5';
   document.getElementById('ctoneSwatch').style.background = hex.charAt(0)==='#'?hex:('#'+hex);
   const codigo = pi.sku ? pi.sku.split('-').pop() : '';
@@ -2496,6 +2519,55 @@ function abrirDetalleTonoCarta(productoId){
   document.getElementById('cartaLB').classList.add('open');
   document.body.style.overflow='hidden';
 }
+let cartaToneImgs = [];
+let cartaToneImgIdx = 0;
+function setCartaImg(i){
+  cartaToneImgIdx = i;
+  const fb = (IMG.esmalte && IMG.esmalte[0]) || '';
+  const src = cartaToneImgs[i] || fb;
+  const imgEl = document.getElementById('ctoneImg');
+  imgEl.src = src; imgEl.onerror = function(){ this.src = fb; };
+  document.querySelectorAll('#ctoneThumbs .ctone-thumb').forEach((t,idx)=>t.classList.toggle('active', idx===i));
+}
+function renderCartaThumbs(){
+  const cont = document.getElementById('ctoneThumbs');
+  if (cartaToneImgs.length <= 1){ cont.innerHTML=''; cont.style.display='none'; return; }
+  cont.style.display='flex';
+  cont.innerHTML = cartaToneImgs.map((u,idx)=>
+    `<button class="ctone-thumb${idx===0?' active':''}" onclick="setCartaImg(${idx})"><img src="${u}" alt=""></button>`
+  ).join('');
+}
+// ── Zoom a pantalla completa con arrastre ──
+let tzScale=1, tzX=0, tzY=0, tzDrag=false, tzSX=0, tzSY=0;
+function tonoZoomOpen(){
+  const src = document.getElementById('ctoneImg').src;
+  if(!src) return;
+  const z = document.getElementById('tonoZoom');
+  const im = document.getElementById('tonoZoomImg');
+  im.src = src;
+  tzScale=1.6; tzX=0; tzY=0; tzApply();
+  z.classList.add('open');
+}
+function tzApply(){
+  const im = document.getElementById('tonoZoomImg');
+  im.style.transform = `translate(${tzX}px,${tzY}px) scale(${tzScale})`;
+}
+function tonoZoomClose(){ document.getElementById('tonoZoom').classList.remove('open'); }
+function tonoZoomBg(e){ if(e.target.id==='tonoZoom') tonoZoomClose(); }
+(function(){
+  const im = document.getElementById('tonoZoomImg');
+  if(!im) return;
+  const start=(x,y)=>{tzDrag=true;tzSX=x-tzX;tzSY=y-tzY;};
+  const move=(x,y)=>{ if(!tzDrag)return; tzX=x-tzSX; tzY=y-tzSY; tzApply(); };
+  const end=()=>{tzDrag=false;};
+  im.addEventListener('mousedown',e=>{e.preventDefault();start(e.clientX,e.clientY);});
+  window.addEventListener('mousemove',e=>move(e.clientX,e.clientY));
+  window.addEventListener('mouseup',end);
+  im.addEventListener('touchstart',e=>{const t=e.touches[0];start(t.clientX,t.clientY);},{passive:true});
+  im.addEventListener('touchmove',e=>{const t=e.touches[0];move(t.clientX,t.clientY);},{passive:true});
+  im.addEventListener('touchend',end);
+  im.addEventListener('click',e=>e.stopPropagation());
+})();
 function closeCartaLB(){
   document.getElementById('cartaLB').classList.remove('open');
   document.body.style.overflow='hidden'; // la carta sigue abierta detrás
