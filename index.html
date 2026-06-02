@@ -389,11 +389,12 @@ body{
 .ctone-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .ctone-thumb.active{border-color:#8E2A2A;box-shadow:0 0 0 2px rgba(142,42,42,.9),0 2px 8px rgba(142,42,42,.25)}
 .ctone-thumb:active{transform:scale(.94)}
-#tonoZoom{position:fixed;inset:0;z-index:600;background:rgba(20,14,12,.92);display:none;align-items:center;justify-content:center;cursor:zoom-out;touch-action:none}
+#tonoZoom{position:fixed;inset:0;z-index:600;background:rgba(18,12,10,.95);display:none;align-items:center;justify-content:center;cursor:zoom-out;touch-action:none;overflow:hidden}
 #tonoZoom.open{display:flex}
-#tonoZoom img{max-width:none;user-select:none;-webkit-user-drag:none;transition:transform .05s linear}
-.tz-x{position:absolute;top:18px;right:18px;width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:20px;cursor:pointer;z-index:2}
-.tz-hint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.7);font-size:12px;letter-spacing:.04em;z-index:2}
+#tonoZoom img{max-width:90vw;max-height:80vh;border-radius:10px;box-shadow:0 0 0 1px rgba(255,255,255,.25),0 20px 60px rgba(0,0,0,.6);user-select:none;-webkit-user-drag:none;transition:transform .05s linear}
+.tz-x{position:absolute;top:18px;right:18px;width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(18,12,10,.85);color:#fff;font-size:21px;cursor:pointer;z-index:610;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+.tz-x:active{transform:scale(.92)}
+.tz-hint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);color:#fff;background:rgba(18,12,10,.7);padding:7px 14px;border-radius:999px;font-size:12px;letter-spacing:.04em;z-index:610}
 .ctone-swatch{
   position:absolute;top:14px;left:14px;z-index:2;
   width:34px;height:34px;border-radius:50%;
@@ -1389,7 +1390,7 @@ html[data-tema-promos="spa"] #promoLB{
 <div id="tonoZoom" onclick="tonoZoomBg(event)">
   <button class="tz-x" onclick="tonoZoomClose()">✕</button>
   <img id="tonoZoomImg" src="" alt="">
-  <div class="tz-hint">Arrastra para mover · toca fuera para cerrar</div>
+  <div class="tz-hint">Doble toque para ampliar · arrastra para mover · toca fuera para cerrar</div>
 </div>
 
 <script>
@@ -2546,7 +2547,7 @@ function tonoZoomOpen(){
   const z = document.getElementById('tonoZoom');
   const im = document.getElementById('tonoZoomImg');
   im.src = src;
-  tzScale=1.6; tzX=0; tzY=0; tzApply();
+  tzScale=1; tzX=0; tzY=0; tzApply();
   z.classList.add('open');
 }
 function tzApply(){
@@ -2568,6 +2569,7 @@ function tonoZoomBg(e){ if(e.target.id==='tonoZoom') tonoZoomClose(); }
   im.addEventListener('touchmove',e=>{const t=e.touches[0];move(t.clientX,t.clientY);},{passive:true});
   im.addEventListener('touchend',end);
   im.addEventListener('click',e=>e.stopPropagation());
+  im.addEventListener('dblclick',e=>{ e.stopPropagation(); tzScale = (tzScale>1?1:2.2); if(tzScale===1){tzX=0;tzY=0;} tzApply(); });
 })();
 function closeCartaLB(){
   document.getElementById('cartaLB').classList.remove('open');
