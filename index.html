@@ -1777,7 +1777,7 @@ async function loadFromSupabase(){
 
 
 // ── STATE ──
-let curSlide=0,lbFav=false,cartCount=0;
+let curSlide=0,lbFav=false,cartCount=0,lbPresOffset=0;
 let lbBoxMode=false, lbBoxProds=[];
 let activeBrand='todas',activeFilter='todas';
 let searchOpen=false;
@@ -2191,6 +2191,7 @@ function addC(e,b,productId){
 function openLB(idx){
   const p=P.find(x=>x.id===idx); if(!p) return;
   curSlide=0;
+  lbPresOffset=0;
   lbFav = favItems.some(f=>f.id===idx);
 
   // ── Detectar producto INDIVIDUAL con varias presentaciones ──
@@ -2242,9 +2243,26 @@ function openLB(idx){
       }).join('');
     document.getElementById('lbDots').innerHTML =
       presIndiv.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
+  } else if (presIndiv && presIndiv.length > 1){
+    // NO-esmalte con VARIAS presentaciones (ej. Removedores):
+    // ORDEN: 1) imagen principal (montaje), 2) cada presentación, 3) galería adicional.
+    const fallback = (p.imgsReales && p.imgsReales[0]) ? p.imgsReales[0] : p.imgs[0];
+    const principal = (p.imgsReales && p.imgsReales[0]) ? p.imgsReales[0] : null;
+    const galeria = (p.imgsReales && p.imgsReales.length > 1) ? p.imgsReales.slice(1) : [];
+    const presFotos = presIndiv.map(pr => (pr.imagen_url && pr.imagen_url.trim()) ? pr.imagen_url.trim() : fallback);
+    let fuente = [];
+    if (principal) fuente.push(principal);
+    presFotos.forEach(u => fuente.push(u));
+    galeria.forEach(u => { if (u && u.trim()) fuente.push(u.trim()); });
+    // offset = en qué slide arrancan las presentaciones (1 si hay principal, 0 si no)
+    lbPresOffset = principal ? 1 : 0;
+    document.getElementById('lbSlides').innerHTML =
+      fuente.map(src=>`<div class="lb-slide"><img src="${src}" alt="" onerror="this.src='${fallback}'"></div>`).join('');
+    document.getElementById('lbDots').innerHTML =
+      fuente.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
   } else if (presIndiv){
-    // NO-esmalte con presentaciones: el carrusel usa las fotos PROPIAS del producto
-    // (imagen principal + galería). Si no hay, cae a la imagen de cada presentación.
+    // NO-esmalte con UNA sola presentación (ej. Base de Calcio):
+    // el carrusel usa las fotos propias del producto (imagen principal + galería).
     const fallback = p.imgs[0];
     let fuente = (p.imgsReales && p.imgsReales.length > 0) ? p.imgsReales.slice() : [];
     if (fuente.length === 0){
@@ -2289,7 +2307,7 @@ function openLB(idx){
       const etiqueta = pr.nombre
         ? (/^\d+$/.test(String(pr.nombre).trim()) ? pr.nombre+' ml' : pr.nombre)
         : (pr.volumen_ml ? pr.volumen_ml+' ml' : 'Opción '+(i+1));
-      return `<div class="lv${i===0?' on':''}" onclick="goSlide(${i})">${etiqueta}</div>`;
+      return `<div class="lv${i===0?' on':''}" onclick="goSlide(${i}+lbPresOffset)">${etiqueta}</div>`;
     }).join('');
   } else if (p.productosInternos && p.productosInternos.length > 0 && PI.length > 0){
     // Tomamos los productos individuales de esta colección
@@ -2787,8 +2805,9 @@ function goSlide(i){
     // Caja no-esmalte: cada slide es un producto → refrescamos el panel inferior
     renderBoxProducto(curSlide);
   } else {
-    // Sincroniza la presentación marcada con el slide actual (carrusel → botón)
-    document.querySelectorAll('#lbVars .lv').forEach((v,j)=>v.classList.toggle('on',j===curSlide));
+    // Sincroniza la presentación marcada con el slide actual (carrusel → botón),
+    // considerando el offset de la imagen principal al inicio.
+    document.querySelectorAll('#lbVars .lv').forEach((v,j)=>v.classList.toggle('on',(j+lbPresOffset)===curSlide));
   }
 }
 // Rellena el panel inferior con los datos del producto actual de una caja no-esmalte
