@@ -1561,8 +1561,25 @@ async function loadFromSupabase(){
     if (error) throw error;
     if (!data || data.length === 0) throw new Error('Catálogo vacío');
 
-    // Guardamos los 305 productos individuales
+    // Guardamos los productos individuales
     PI = data;
+
+    // ── OCULTAR MARCAS DESACTIVADAS (ej: Matizze en pausa desde el admin) ──
+    // Si una marca tiene visible=false, sus productos NO se muestran en el
+    // catálogo (ni sus colecciones, categorías o pills de marca). No se borra
+    // nada: basta volver a activarla en el admin para que reaparezca todo.
+    try {
+      const { data: marcasOcultas } = await sb
+        .from('marcas').select('slug,nombre,visible').eq('visible', false);
+      if (marcasOcultas && marcasOcultas.length) {
+        const ocultos = new Set(
+          marcasOcultas.map(m => (m.slug || m.nombre || '').toLowerCase())
+        );
+        PI = data.filter(p =>
+          !ocultos.has((p.marca_slug || p.marca || '').toLowerCase())
+        );
+      }
+    } catch(e) { console.warn('No se pudo leer marcas ocultas:', e); }
 
     // ── COLECCIONES TEMÁTICAS (híbrido) ──
     // Estas colecciones SÍ muestran una caja/portada que abre un carrusel,
@@ -1579,7 +1596,7 @@ async function loadFromSupabase(){
 
     // Contamos cuántos productos hay en cada colección
     const conteoColeccion = {};
-    data.forEach(prod => {
+    PI.forEach(prod => {
       const s = aSlug(prod.coleccion_slug || prod.coleccion);
       if (s) conteoColeccion[s] = (conteoColeccion[s] || 0) + 1;
     });
@@ -1596,7 +1613,7 @@ async function loadFromSupabase(){
 
     // Agrupamos por (marca + categoría + colección) para construir las "tarjetas agrupadas"
     const grupos = new Map();
-    data.forEach(prod => {
+    PI.forEach(prod => {
       // Colección TEMÁTICA  → una caja por colección (carrusel de tonos)
       // Colección organizativa o SIN colección → cada producto es su propia tarjeta
       const tematica = esTematica(prod);
