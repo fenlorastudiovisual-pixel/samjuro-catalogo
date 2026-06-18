@@ -3388,11 +3388,11 @@ function confirmWompiPay(){
   <div class="pwa-ios-sheet">
     <button class="pwa-ios-x" onclick="closePwaIos()">✕</button>
     <div class="pwa-ios-logo">📲</div>
-    <div class="pwa-ios-title">Guardar en tu iPhone</div>
+    <div class="pwa-ios-title">Guardar en tu iPhone o iPad</div>
     <div class="pwa-ios-sub">Solo 2 pasos desde Safari:</div>
     <div class="pwa-ios-step">
       <span class="pwa-ios-num">1</span>
-      <div>Toca el botón <b>Compartir</b> <span class="pwa-ios-share">⬆️</span> en la barra de abajo de Safari.</div>
+      <div>Toca el botón <b>Compartir</b> <span class="pwa-ios-share">⬆️</span> en la barra de Safari <span style="opacity:.7">(abajo en iPhone, arriba en iPad)</span>.</div>
     </div>
     <div class="pwa-ios-step">
       <span class="pwa-ios-num">2</span>
@@ -3505,7 +3505,12 @@ function confirmWompiPay(){
         || window.navigator.standalone === true;
   }
   function isIos(){
-    return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+    var ua = navigator.userAgent || '';
+    // iPhone / iPod / iPad clásicos
+    var clasico = /iphone|ipad|ipod/i.test(ua);
+    // iPadOS 13+ se disfraza de Mac: un "Mac" con pantalla táctil = iPad
+    var ipadModerno = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
+    return (clasico || ipadModerno) && !window.MSStream;
   }
 
   // Si ya está abierta como app instalada, no mostramos el botón
