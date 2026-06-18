@@ -1,0 +1,26 @@
+{
+  "name": "Samjuro Japan S.A.S — Distribuidora de Belleza",
+  "short_name": "Samjuro",
+  "description": "Catálogo digital de Samjuro Japan. Distribuidores oficiales de Checo y Matizze en Colombia.",
+  "lang": "es-CO",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "https://cdn.samjuro.com.co/misma_imagen._todo_igualito_2K_202606171957.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn.samjuro.com.co/misma_imagen._todo_igualito_2K_202606171957.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}
