@@ -2760,6 +2760,12 @@ function abrirDetalleTono(productoId){
   // ── Galería del tono: imagen principal + imágenes adicionales ──
   // Si no hay galería propia, se usa la imagen de la presentación o la genérica.
   let galeria = [];
+  // ── Imagen(es) del TONO (campo "Carta de Color") van PRIMERO: son lo que representa
+  //    el color real. Puede traer varias URLs (una por línea o separadas por coma),
+  //    igual que en la Carta de Color grande.
+  if (pi.imagen_tono && pi.imagen_tono.trim()){
+    pi.imagen_tono.split(/[\n,]+/).map(s=>s.trim()).filter(s=>s.length>0).forEach(u => galeria.push(u));
+  }
   if (pi.imagen_principal && pi.imagen_principal.trim()) galeria.push(pi.imagen_principal.trim());
   if (Array.isArray(pi.imagenes)) pi.imagenes.forEach(u => { if (u && u.trim()) galeria.push(u.trim()); });
   // Imágenes de cada presentación con nombre de pincel → se agregan y se mapea su índice
