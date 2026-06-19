@@ -584,6 +584,8 @@ body{
   font-size:.85rem;display:flex;align-items:center;justify-content:center;z-index:5;
 }
 .lb-car{width:100%;aspect-ratio:1/1;height:auto;overflow:hidden;position:relative;touch-action:pan-y;background:#F1E9DC}
+/* Colección de esmaltes: sin imagen grande arriba → directo a la cuadrícula de tonos */
+#lb.lb-no-img #lbCar,#lb.lb-no-img #lbDots{display:none}
 .lb-slides{display:flex;height:100%;transition:transform .32s cubic-bezier(.22,1,.36,1)}
 .lb-slide{flex-shrink:0;width:100%;height:100%}
 .lb-slide img{width:100%;height:100%;object-fit:contain;display:block}
@@ -2283,6 +2285,7 @@ function openLB(idx){
   curSlide=0;
   lbPresOffset=0;
   lbFav = favItems.some(f=>f.id===idx);
+  document.getElementById('lb').classList.remove('lb-no-img');
 
   // ── Detectar producto INDIVIDUAL con varias presentaciones ──
   // (una sola tarjeta = un producto, con presentaciones tipo tamaños 60ml/250ml…)
@@ -2318,28 +2321,11 @@ function openLB(idx){
     document.getElementById('lbDots').innerHTML =
       lbBoxProds.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
   } else if (esColeccion){
-    // Esmaltes (colección): CARRUSEL de tonos — abre directo en el PRIMER tono
-    // (sin imagen interior intermedia). Cada slide = la imagen del tono.
-    const tonosCol = p.productosInternos.map(id => PI.find(pi => pi.id === id)).filter(Boolean);
-    const fbCol = p.imgs[0];
-    if (tonosCol.length){
-      document.getElementById('lbSlides').innerHTML = tonosCol.map(t => {
-        let src = '';
-        if (t.imagen_tono && t.imagen_tono.trim()){
-          src = t.imagen_tono.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean)[0] || '';
-        }
-        if (!src) src = (t.imagen_principal && t.imagen_principal.trim()) ? t.imagen_principal.trim() : fbCol;
-        return `<div class="lb-slide"><img src="${src}" alt="" onerror="this.src='${fbCol}'"></div>`;
-      }).join('');
-      document.getElementById('lbDots').innerHTML =
-        tonosCol.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
-    } else {
-      // Respaldo: si no hay tonos cargados, usa la imagen interior como antes.
-      const interior = (p.coleccionInterior && p.coleccionInterior.trim()) ? p.coleccionInterior : p.imgs[0];
-      document.getElementById('lbSlides').innerHTML =
-        `<div class="lb-slide"><img src="${interior}" alt="" onerror="this.src='${p.imgs[0]}'"></div>`;
-      document.getElementById('lbDots').innerHTML = '';
-    }
+    // Esmaltes (colección): SIN imagen grande arriba. Va directo a la cuadrícula de
+    // tonos (carta de color). El carrusel se oculta por CSS con la clase lb-no-img.
+    document.getElementById('lb').classList.add('lb-no-img');
+    document.getElementById('lbSlides').innerHTML = '';
+    document.getElementById('lbDots').innerHTML = '';
   } else if (presIndiv && esEsmalteCat){
     // ESMALTES: una imagen por presentación (su imagen_url = cada tono)
     const fallback = p.imgs[0];
@@ -2431,7 +2417,11 @@ function openLB(idx){
           // (el mismo campo que el visor grande). Si no hay, cae a la imagen
           // de la presentación, y si tampoco, a la genérica de esmalte.
           const fbImg = (IMG.esmalte && IMG.esmalte[0]) || '';
-          const img = (pi.imagen_principal && pi.imagen_principal.trim()) ? pi.imagen_principal.trim()
+          // Carta de color: el chip muestra la imagen del TONO (la URL que cargas en admin).
+          // Si ese tono no tiene imagen de tono, cae a la del frasco / presentación / genérica.
+          let img = '';
+          if (pi.imagen_tono && pi.imagen_tono.trim()) img = pi.imagen_tono.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean)[0] || '';
+          if (!img) img = (pi.imagen_principal && pi.imagen_principal.trim()) ? pi.imagen_principal.trim()
                     : (pres && pres.imagen_url && pres.imagen_url.trim()) ? pres.imagen_url.trim()
                     : fbImg;
           // Extraer nombre corto del tono (sin "Esmalte #88")
