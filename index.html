@@ -2417,11 +2417,9 @@ function openLB(idx){
           // (el mismo campo que el visor grande). Si no hay, cae a la imagen
           // de la presentación, y si tampoco, a la genérica de esmalte.
           const fbImg = (IMG.esmalte && IMG.esmalte[0]) || '';
-          // Carta de color: el chip muestra la imagen del TONO (la URL que cargas en admin).
-          // Si ese tono no tiene imagen de tono, cae a la del frasco / presentación / genérica.
-          let img = '';
-          if (pi.imagen_tono && pi.imagen_tono.trim()) img = pi.imagen_tono.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean)[0] || '';
-          if (!img) img = (pi.imagen_principal && pi.imagen_principal.trim()) ? pi.imagen_principal.trim()
+          // El chip de la cuadrícula muestra el ESMALTE (el frasco). El glitter del tono
+          // aparece al TOCAR el esmalte, en su detalle.
+          const img = (pi.imagen_principal && pi.imagen_principal.trim()) ? pi.imagen_principal.trim()
                     : (pres && pres.imagen_url && pres.imagen_url.trim()) ? pres.imagen_url.trim()
                     : fbImg;
           // Extraer nombre corto del tono (sin "Esmalte #88")
