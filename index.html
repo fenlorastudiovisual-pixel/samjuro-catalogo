@@ -406,6 +406,8 @@ body{
   width:34px;height:34px;border-radius:50%;
   box-shadow:0 0 0 2px #fff,0 2px 8px rgba(0,0,0,.25);
 }
+/* Cuadrito de color sólido (color_chip) ocultado: el tono ya se ve en la imagen real. */
+#toneSwatch,#ctoneSwatch{display:none !important}
 .ctone-num{
   position:absolute;bottom:14px;right:14px;z-index:2;
   font-size:11px;letter-spacing:1.5px;color:#fff;font-weight:500;
@@ -1712,8 +1714,10 @@ async function loadFromSupabase(){
         : (grupo.productos[0] ? grupo.productos[0].nombre : grupo.categoria);
       // Descripción: si la primera tiene desc_corta o desc_larga
       const primerProd = grupo.productos[0];
-      const desc = primerProd.descripcion_corta
-        || (primerProd.descripcion_larga ? primerProd.descripcion_larga.substring(0, 180) + '...' : '')
+      const _descC = limpiarDesc(primerProd.descripcion_corta);
+      const _descL = limpiarDesc(primerProd.descripcion_larga);
+      const desc = _descC
+        || (_descL ? _descL.substring(0, 180) + '...' : '')
         || `${grupo.productos.length} producto(s) disponible(s) en esta colección.`;
 
       // Imágenes reales del producto (solo para productos individuales):
@@ -2271,6 +2275,9 @@ function addC(e,b,productId){
 }
 
 // ── LIGHTBOX ──
+// Quita notas internas entre corchetes (ej. "[REVISAR: no aparece...]") de las
+// descripciones antes de mostrarlas al cliente. El dato en Supabase no se toca.
+function limpiarDesc(t){ return (t||'').replace(/\s*\[[^\]]*\]\s*/g,' ').replace(/\s{2,}/g,' ').trim(); }
 function openLB(idx){
   const p=P.find(x=>x.id===idx); if(!p) return;
   curSlide=0;
@@ -2311,11 +2318,28 @@ function openLB(idx){
     document.getElementById('lbDots').innerHTML =
       lbBoxProds.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
   } else if (esColeccion){
-    // Esmaltes: imagen fija interior (no carrusel); la cuadrícula de tonos va abajo
-    const interior = (p.coleccionInterior && p.coleccionInterior.trim()) ? p.coleccionInterior : p.imgs[0];
-    document.getElementById('lbSlides').innerHTML =
-      `<div class="lb-slide"><img src="${interior}" alt="" onerror="this.src='${p.imgs[0]}'"></div>`;
-    document.getElementById('lbDots').innerHTML = '';  // sin puntos: una sola imagen
+    // Esmaltes (colección): CARRUSEL de tonos — abre directo en el PRIMER tono
+    // (sin imagen interior intermedia). Cada slide = la imagen del tono.
+    const tonosCol = p.productosInternos.map(id => PI.find(pi => pi.id === id)).filter(Boolean);
+    const fbCol = p.imgs[0];
+    if (tonosCol.length){
+      document.getElementById('lbSlides').innerHTML = tonosCol.map(t => {
+        let src = '';
+        if (t.imagen_tono && t.imagen_tono.trim()){
+          src = t.imagen_tono.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean)[0] || '';
+        }
+        if (!src) src = (t.imagen_principal && t.imagen_principal.trim()) ? t.imagen_principal.trim() : fbCol;
+        return `<div class="lb-slide"><img src="${src}" alt="" onerror="this.src='${fbCol}'"></div>`;
+      }).join('');
+      document.getElementById('lbDots').innerHTML =
+        tonosCol.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
+    } else {
+      // Respaldo: si no hay tonos cargados, usa la imagen interior como antes.
+      const interior = (p.coleccionInterior && p.coleccionInterior.trim()) ? p.coleccionInterior : p.imgs[0];
+      document.getElementById('lbSlides').innerHTML =
+        `<div class="lb-slide"><img src="${interior}" alt="" onerror="this.src='${p.imgs[0]}'"></div>`;
+      document.getElementById('lbDots').innerHTML = '';
+    }
   } else if (presIndiv && esEsmalteCat){
     // ESMALTES: una imagen por presentación (su imagen_url = cada tono)
     const fallback = p.imgs[0];
@@ -2415,7 +2439,7 @@ function openLB(idx){
           // Extraer número/código del SKU
           const codigo = pi.sku ? pi.sku.split('-').pop() : '';
           return `<div class="tone-card" onclick="toggleToneSelect(this, '${pi.id}')">
-                    <div class="tone-thumb" style="background:${hex}">
+                    <div class="tone-thumb">
                       <img src="${img}" alt="" loading="lazy" onerror="this.style.display='none'">
                     </div>
                     <div class="tone-name">${nombreLimpio}</div>
@@ -2638,7 +2662,7 @@ function abrirDetalleTonoCarta(productoId){
   let st=''; for(let i=1;i<=5;i++) st+='★';
   document.getElementById('ctoneStars').textContent = st;
   document.getElementById('ctoneDesc').textContent =
-    pi.descripcion_corta || pi.descripcion_larga || 'Consultá disponibilidad y cotización por WhatsApp.';
+    limpiarDesc(pi.descripcion_corta || pi.descripcion_larga) || 'Consultá disponibilidad y cotización por WhatsApp.';
   const fav = favItems.some(f=>f.id===pi.id);
   document.getElementById('ctoneFavB').textContent = fav ? '❤️' : '🤍';
   const cb=document.getElementById('ctoneCartB'); cb.textContent='Agregar al pedido'; cb.classList.remove('ok');
@@ -2825,7 +2849,7 @@ function abrirDetalleTono(productoId){
   let st=''; for(let i=1;i<=5;i++) st+='★';
   document.getElementById('toneStars').textContent = st;
   document.getElementById('toneDesc').textContent =
-    pi.descripcion_corta || pi.descripcion_larga || 'Consultá disponibilidad y cotización por WhatsApp.';
+    limpiarDesc(pi.descripcion_corta || pi.descripcion_larga) || 'Consultá disponibilidad y cotización por WhatsApp.';
   renderPinceles(pi, 'tonePinceles');
   const fav = favItems.some(f=>f.id===pi.id);
   document.getElementById('toneFavB').textContent = fav ? '❤️' : '🤍';
@@ -2903,8 +2927,10 @@ function goSlide(i){
 function renderBoxProducto(i){
   const prod = lbBoxProds[i]; if(!prod) return;
   document.getElementById('lbName').textContent = prod.nombre || '';
-  const d = prod.descripcion_corta
-    || (prod.descripcion_larga ? prod.descripcion_larga.substring(0,180)+'…' : '')
+  const _dc = limpiarDesc(prod.descripcion_corta);
+  const _dl = limpiarDesc(prod.descripcion_larga);
+  const d = _dc
+    || (_dl ? _dl.substring(0,180)+'…' : '')
     || '';
   document.getElementById('lbDesc').textContent = d;
   const lbVarsEl = document.getElementById('lbVars');
