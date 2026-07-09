@@ -3510,12 +3510,22 @@ function confirmWompiPay(){
     if(pwaLink){ pwaLink.setAttribute('href', URL.createObjectURL(pwaBlob)); }
   }catch(e){}
 
-  // Sin service worker: el catálogo SIEMPRE carga lo último de internet.
-  // Por si quedó algún SW viejo de una prueba anterior, lo quitamos.
+  // Service worker "network-first": la app instalada recibe SIEMPRE lo último
+  // cuando hay internet, y abre offline con la última versión guardada.
+  // Además rescata a quienes quedaron pegados con un SW viejo.
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.getRegistrations()
-      .then(function(rs){ rs.forEach(function(r){ r.unregister(); }); })
-      .catch(function(){});
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+        .then(function(reg){ if(reg && reg.update){ reg.update(); } })
+        .catch(function(){});
+    });
+    // Cuando un SW nuevo toma el control, recargamos UNA vez para mostrar lo último.
+    var swReloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      if(swReloaded) return;
+      swReloaded = true;
+      window.location.reload();
+    });
   }
 
   var deferredPrompt = null;
