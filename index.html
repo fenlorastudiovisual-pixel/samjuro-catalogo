@@ -3096,13 +3096,26 @@ function sendCartWA(){
   msg += `🛒 Catálogo (catalogo.samjuro.com.co)\n` + sep + '\n';
   msg += `🛒 *PRODUCTOS*\n\n`;
 
-  cartItems.forEach((item)=>{
-    const qty = item.qty || 1;
-    msg += `• ${item.name} (${item.variant}) ×${qty}\n`;
+  // Agrupar por producto (mismo nombre): un título + sus presentaciones
+  const grupos = new Map();
+  cartItems.forEach(item=>{
+    const key = (item.name||'') + '|' + (item.brand||'');
+    if(!grupos.has(key)) grupos.set(key, { name:item.name, items:[] });
+    grupos.get(key).items.push(item);
+  });
+  grupos.forEach(g=>{
+    if(g.items.length === 1){
+      const it = g.items[0];
+      msg += `• ${g.name} (${it.variant}) ×${it.qty||1}\n`;
+    } else {
+      msg += `*${g.name}*\n`;
+      g.items.forEach(it=>{ msg += `   • ${it.variant} ×${it.qty||1}\n`; });
+      msg += `\n`;
+    }
   });
 
   msg += sep + '\n';
-  msg += `📦 Total: ${cartItems.length} ítem${cartItems.length!==1?'s':''} · ${totalUnidades} unidad${totalUnidades!==1?'es':''}\n`;
+  msg += `📦 Total: ${grupos.size} producto${grupos.size!==1?'s':''} · ${totalUnidades} unidad${totalUnidades!==1?'es':''}\n`;
   msg += sep + '\n';
   msg += `¡Buen día! Soy cliente y quiero cotizar este pedido.\n`;
   msg += `¿Me confirman disponibilidad, precio mayorista y tiempos de entrega? 🙏 ¡Gracias!`;
