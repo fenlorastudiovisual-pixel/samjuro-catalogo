@@ -3094,13 +3094,15 @@ function sendCartWA(){
   msg += `🧾 ${orderId}\n`;
   msg += `📅 ${fecha}\n`;
   msg += `🛒 Catálogo (catalogo.samjuro.com.co)\n` + sep + '\n';
-  msg += `🛒 *PRODUCTOS* (${cartItems.length} ítem${cartItems.length>1?'s':''} · ${totalUnidades} unidad${totalUnidades>1?'es':''})\n\n`;
+  msg += `🛒 *PRODUCTOS*\n\n`;
 
   cartItems.forEach((item)=>{
-    const qty = item.qty>1 ? ` ×${item.qty}` : '';
-    msg += `• ${item.brand} — ${item.name} (${item.variant})${qty}\n`;
+    const qty = item.qty || 1;
+    msg += `• ${item.name} (${item.variant}) ×${qty}\n`;
   });
 
+  msg += sep + '\n';
+  msg += `📦 Total: ${cartItems.length} ítem${cartItems.length!==1?'s':''} · ${totalUnidades} unidad${totalUnidades!==1?'es':''}\n`;
   msg += sep + '\n';
   msg += `¡Buen día! Soy cliente y quiero cotizar este pedido.\n`;
   msg += `¿Me confirman disponibilidad, precio mayorista y tiempos de entrega? 🙏 ¡Gracias!`;
