@@ -1190,7 +1190,12 @@ html[data-tema-promos="spa"] #promoLB{
      la imagen no quede apaisada al ocupar los 820px de ancho */
   .lb-car{ aspect-ratio:1/1 !important; height:auto !important; }
 }
-  .pres-qty-list{display:flex;flex-direction:column;gap:2px;margin-top:2px}
+  .lb-selwrap{position:relative;margin-bottom:16px}
+  .lb-sel{width:100%;height:46px;border:1px solid var(--hairline-strong);border-radius:12px;background:var(--white);padding:0 40px 0 14px;font-size:15px;color:var(--ink);font-weight:600;appearance:none;-webkit-appearance:none;cursor:pointer}
+  .lb-chev{position:absolute;right:15px;top:50%;transform:translateY(-50%);color:#9b8b84;pointer-events:none;font-size:11px}
+  .lb-qty{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .lb-qbtn{width:44px;height:44px;border:1px solid var(--hairline-strong);border-radius:11px;background:var(--white);color:var(--ink);font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+  .lb-qinp{flex:1;height:44px;border:1px solid var(--hairline-strong);border-radius:11px;background:var(--white);text-align:center;font-size:17px;font-weight:700;color:var(--ink);width:100%}
 </style>
 <style>
 /* ══ PWA · Guardar en mi celular ══ */
@@ -1389,6 +1394,14 @@ html[data-tema-promos="spa"] #promoLB{
       <div class="lb-desc" id="lbDesc"></div>
       <div class="lb-vl">Presentación</div>
       <div class="lb-vars" id="lbVars"></div>
+      <div id="lbQtyWrap" style="display:none">
+        <div class="lb-vl">Cantidad</div>
+        <div class="lb-qty">
+          <button class="lb-qbtn" onclick="lbQtyStep(-1)">−</button>
+          <input class="lb-qinp" id="lbQty" type="text" inputmode="numeric" value="1" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <button class="lb-qbtn" onclick="lbQtyStep(1)">+</button>
+        </div>
+      </div>
       <div class="lb-acts">
         <button class="lb-fav-b" id="lbFavB">🤍</button>
         <button class="lb-cart" id="lbCartB" onclick="lbAddCart()">🛒 Agregar al pedido</button>
@@ -1869,7 +1882,7 @@ async function loadFromSupabase(){
 
 
 // ── STATE ──
-let curSlide=0,lbFav=false,cartCount=0,lbPresOffset=0,lbMultiPres=false,lbPresList=[];
+let curSlide=0,lbFav=false,cartCount=0,lbPresOffset=0,lbHasQty=false,lbPresList=[];
 let lbBoxMode=false, lbBoxProds=[];
 let activeBrand='todas',activeFilter='todas';
 let searchOpen=false;
@@ -2263,7 +2276,7 @@ function addC(e,b,productId){
   e.stopPropagation();
   const p = P.find(x=>x.id===productId);
   if(!p) return;
-  // ¿Producto con varias presentaciones (tamaños)? -> abrir detalle para elegir cantidades
+  // ¿Producto con varias presentaciones (tamaños)? -> abrir detalle
   if(p.productosInternos && p.productosInternos.length===1){
     const piC = PI.find(x=>x.id===p.productosInternos[0]);
     if(piC && Array.isArray(piC.presentaciones) && piC.presentaciones.length>1){ openLB(productId); return; }
@@ -2292,7 +2305,7 @@ function openLB(idx){
   const p=P.find(x=>x.id===idx); if(!p) return;
   curSlide=0;
   lbPresOffset=0;
-  lbMultiPres=false; lbPresList=[];
+  lbHasQty=false; lbPresList=[];
   lbFav = favItems.some(f=>f.id===idx);
   document.getElementById('lb').classList.remove('lb-no-img');
 
@@ -2404,8 +2417,8 @@ function openLB(idx){
     // Caja no-esmalte: el panel inferior se comporta como un producto suelto.
     // Cada producto del carrusel muestra su nombre, descripción y presentaciones.
     renderBoxProducto(0);
-  } else if (presIndiv && presIndiv.length > 1){
-    // Varias presentaciones (removedores) → cantidad por cada tamaño
+  } else if (presIndiv){
+    // Desplegable de presentaciones + cantidad
     const _pid = presIndivPi ? presIndivPi.id : p.id;
     const _nom = presIndivPi ? presIndivPi.nombre : document.getElementById('lbName').textContent;
     const _marca = (presIndivPi && (presIndivPi.marca_slug==='matizze' || /matizze/i.test(presIndivPi.marca||''))) ? 'MATIZZE' : 'CHECO';
@@ -2415,19 +2428,10 @@ function openLB(idx){
       const img = (pr.imagen_url && pr.imagen_url.trim()) ? pr.imagen_url.trim() : _fb;
       return { label:etiqueta, key:'p:'+_pid+'::'+etiqueta, img:img, name:_nom, brand:_marca };
     });
-    lbVarsEl.innerHTML = '<div class="pres-qty-list">' + lbPresList.map((info,i)=>{
-      const cur = (cartItems.find(c=>c.id===info.key)||{}).qty || 0;
-      return `<div class="qo-row"><span class="qo-name" onclick="goSlide(${i}+lbPresOffset)" style="cursor:pointer">${info.label}</span><div class="qo-qty"><button class="qo-btn" onclick="presQty(${i},-1)">−</button><span class="qo-num" id="presNum-${i}">${cur}</span><button class="qo-btn" onclick="presQty(${i},1)">+</button></div></div>`;
-    }).join('') + '</div>';
-    lbMultiPres = true;
-  } else if (presIndiv){
-    // Una sola presentación → botón que salta a su imagen
-    lbVarsEl.innerHTML = presIndiv.map((pr,i)=>{
-      const etiqueta = pr.nombre
-        ? (/^\d+$/.test(String(pr.nombre).trim()) ? pr.nombre+' ml' : pr.nombre)
-        : (pr.volumen_ml ? pr.volumen_ml+' ml' : 'Opción '+(i+1));
-      return `<div class="lv${i===0?' on':''}" onclick="goSlide(${i}+lbPresOffset)">${etiqueta}</div>`;
-    }).join('');
+    lbVarsEl.innerHTML = '<div class="lb-selwrap"><select class="lb-sel" id="lbSel" onchange="lbSelChange()">'
+      + lbPresList.map((info,i)=>`<option value="${i}">${info.label}</option>`).join('')
+      + '</select><span class="lb-chev">▼</span></div>';
+    lbHasQty = true;
   } else if (p.productosInternos && p.productosInternos.length > 0 && PI.length > 0){
     // Tomamos los productos individuales de esta colección
     const productosIndividuales = PI.filter(pi => p.productosInternos.includes(pi.id));
@@ -2500,7 +2504,8 @@ function openLB(idx){
   document.getElementById('lbFavB').textContent=lbFav?'❤️':'🤍';
   const cb=document.getElementById('lbCartB');
   cb.innerHTML='🛒 Agregar al pedido';cb.classList.remove('ok');
-  cb.style.display = lbMultiPres ? 'none' : '';
+  const qw=document.getElementById('lbQtyWrap'); if(qw){ qw.style.display = lbHasQty ? 'block' : 'none'; }
+  const qi=document.getElementById('lbQty'); if(qi) qi.value='1';
   document.getElementById('lb').classList.add('open');
   document.body.style.overflow='hidden';
   document.getElementById('mainPage').style.overflow='hidden';
@@ -2548,20 +2553,6 @@ function quickQty(productoId, delta){
   }
   // Actualizar el número visible
   const num = document.getElementById('qoNum-' + pi.id);
-  if(num) num.textContent = item ? item.qty : 0;
-  updateCartBadge();
-}
-function presQty(i, delta){
-  const info = lbPresList[i]; if(!info) return;
-  let item = cartItems.find(c=>c.id===info.key);
-  if(item){
-    item.qty += delta;
-    if(item.qty<=0){ cartItems = cartItems.filter(c=>c.id!==info.key); item=null; }
-  } else if(delta>0){
-    item = {id:info.key, name:info.name, brand:info.brand, img:info.img, variant:info.label, qty:1};
-    cartItems.push(item);
-  }
-  const num = document.getElementById('presNum-'+i);
   if(num) num.textContent = item ? item.qty : 0;
   updateCartBadge();
 }
@@ -2995,20 +2986,30 @@ function selV(el){
   const totalSlides = document.getElementById('lbSlides').children.length;
   goSlide(Math.min(idx, totalSlides - 1));
 }
+function lbGetQty(){ const el=document.getElementById('lbQty'); let n=parseInt((el?el.value:'1').replace(/[^0-9]/g,''),10); return (isNaN(n)||n<1)?1:n; }
+function lbQtyStep(d){ const el=document.getElementById('lbQty'); if(!el) return; el.value=Math.max(1, lbGetQty()+d); }
+function lbSelChange(){ const s=document.getElementById('lbSel'); if(!s) return; const i=parseInt(s.value,10)||0; goSlide(i+lbPresOffset); }
 function lbAddCart(){
   const b=document.getElementById('lbCartB');
-  b.innerHTML='✓ Agregado';b.classList.add('ok');
-  // Agregar al carrito real
-  const selVarEl = document.querySelector('.lv.on');
-  const variant = selVarEl ? selVarEl.textContent : 'Estándar';
-  const pName = document.getElementById('lbName').textContent;
-  const pBrand = document.getElementById('lbBrand').textContent;
-  const slidesImgs = document.querySelectorAll('#lbSlides .lb-slide img');
-  const img = (slidesImgs[curSlide] || slidesImgs[0])?.src || '';
-  const existing = cartItems.find(i=>i.name===pName && i.variant===variant);
-  if(existing){ existing.qty++; } else {
-    cartItems.push({id:Date.now(), name:pName, brand:pBrand, img:img, variant:variant, qty:1});
+  const qty = lbGetQty();
+  if(lbHasQty && lbPresList.length){
+    const s=document.getElementById('lbSel'); const i=s?parseInt(s.value,10)||0:0;
+    const info=lbPresList[i]; if(!info) return;
+    const ex=cartItems.find(c=>c.id===info.key);
+    if(ex){ ex.qty+=qty; } else { cartItems.push({id:info.key, name:info.name, brand:info.brand, img:info.img, variant:info.label, qty:qty}); }
+  } else {
+    const selVarEl = document.querySelector('.lv.on');
+    const variant = selVarEl ? selVarEl.textContent : 'Estándar';
+    const pName = document.getElementById('lbName').textContent;
+    const pBrand = document.getElementById('lbBrand').textContent;
+    const slidesImgs = document.querySelectorAll('#lbSlides .lb-slide img');
+    const img = (slidesImgs[curSlide] || slidesImgs[0])?.src || '';
+    const existing = cartItems.find(i=>i.name===pName && i.variant===variant);
+    if(existing){ existing.qty+=qty; } else {
+      cartItems.push({id:Date.now(), name:pName, brand:pBrand, img:img, variant:variant, qty:qty});
+    }
   }
+  b.innerHTML='✓ Agregado';b.classList.add('ok');
   updateCartBadge();
   setTimeout(()=>{b.innerHTML='🛒 Agregar al pedido';b.classList.remove('ok')},1500);
 }
