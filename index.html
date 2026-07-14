@@ -1190,6 +1190,7 @@ html[data-tema-promos="spa"] #promoLB{
      la imagen no quede apaisada al ocupar los 820px de ancho */
   .lb-car{ aspect-ratio:1/1 !important; height:auto !important; }
 }
+  .pres-qty-list{display:flex;flex-direction:column;gap:2px;margin-top:2px}
 </style>
 <style>
 /* ══ PWA · Guardar en mi celular ══ */
@@ -1868,7 +1869,7 @@ async function loadFromSupabase(){
 
 
 // ── STATE ──
-let curSlide=0,lbFav=false,cartCount=0,lbPresOffset=0;
+let curSlide=0,lbFav=false,cartCount=0,lbPresOffset=0,lbMultiPres=false,lbPresList=[];
 let lbBoxMode=false, lbBoxProds=[];
 let activeBrand='todas',activeFilter='todas';
 let searchOpen=false;
@@ -2262,6 +2263,11 @@ function addC(e,b,productId){
   e.stopPropagation();
   const p = P.find(x=>x.id===productId);
   if(!p) return;
+  // ¿Producto con varias presentaciones (tamaños)? -> abrir detalle para elegir cantidades
+  if(p.productosInternos && p.productosInternos.length===1){
+    const piC = PI.find(x=>x.id===p.productosInternos[0]);
+    if(piC && Array.isArray(piC.presentaciones) && piC.presentaciones.length>1){ openLB(productId); return; }
+  }
   // Si tiene más de 1 presentación → abrir lightbox para elegir
   if(p.vars && p.vars.length > 1){
     openLB(productId);
@@ -2286,16 +2292,18 @@ function openLB(idx){
   const p=P.find(x=>x.id===idx); if(!p) return;
   curSlide=0;
   lbPresOffset=0;
+  lbMultiPres=false; lbPresList=[];
   lbFav = favItems.some(f=>f.id===idx);
   document.getElementById('lb').classList.remove('lb-no-img');
 
   // ── Detectar producto INDIVIDUAL con varias presentaciones ──
   // (una sola tarjeta = un producto, con presentaciones tipo tamaños 60ml/250ml…)
-  let presIndiv = null;
+  let presIndiv = null, presIndivPi = null;
   if (p.productosInternos && p.productosInternos.length === 1 && PI.length > 0){
     const pi = PI.find(x => x.id === p.productosInternos[0]);
     if (pi && Array.isArray(pi.presentaciones) && pi.presentaciones.length >= 1){
       presIndiv = pi.presentaciones;
+      presIndivPi = pi;
     }
   }
 
@@ -2396,8 +2404,24 @@ function openLB(idx){
     // Caja no-esmalte: el panel inferior se comporta como un producto suelto.
     // Cada producto del carrusel muestra su nombre, descripción y presentaciones.
     renderBoxProducto(0);
+  } else if (presIndiv && presIndiv.length > 1){
+    // Varias presentaciones (removedores) → cantidad por cada tamaño
+    const _pid = presIndivPi ? presIndivPi.id : p.id;
+    const _nom = presIndivPi ? presIndivPi.nombre : document.getElementById('lbName').textContent;
+    const _marca = (presIndivPi && (presIndivPi.marca_slug==='matizze' || /matizze/i.test(presIndivPi.marca||''))) ? 'MATIZZE' : 'CHECO';
+    const _fb = (p.imgsReales && p.imgsReales[0]) ? p.imgsReales[0] : p.imgs[0];
+    lbPresList = presIndiv.map((pr,i)=>{
+      const etiqueta = pr.nombre ? (/^\d+$/.test(String(pr.nombre).trim()) ? pr.nombre+' ml' : pr.nombre) : (pr.volumen_ml ? pr.volumen_ml+' ml' : 'Opción '+(i+1));
+      const img = (pr.imagen_url && pr.imagen_url.trim()) ? pr.imagen_url.trim() : _fb;
+      return { label:etiqueta, key:'p:'+_pid+'::'+etiqueta, img:img, name:_nom, brand:_marca };
+    });
+    lbVarsEl.innerHTML = '<div class="pres-qty-list">' + lbPresList.map((info,i)=>{
+      const cur = (cartItems.find(c=>c.id===info.key)||{}).qty || 0;
+      return `<div class="qo-row"><span class="qo-name" onclick="goSlide(${i}+lbPresOffset)" style="cursor:pointer">${info.label}</span><div class="qo-qty"><button class="qo-btn" onclick="presQty(${i},-1)">−</button><span class="qo-num" id="presNum-${i}">${cur}</span><button class="qo-btn" onclick="presQty(${i},1)">+</button></div></div>`;
+    }).join('') + '</div>';
+    lbMultiPres = true;
   } else if (presIndiv){
-    // Producto individual con varias presentaciones → botones que saltan a su imagen
+    // Una sola presentación → botón que salta a su imagen
     lbVarsEl.innerHTML = presIndiv.map((pr,i)=>{
       const etiqueta = pr.nombre
         ? (/^\d+$/.test(String(pr.nombre).trim()) ? pr.nombre+' ml' : pr.nombre)
@@ -2476,6 +2500,7 @@ function openLB(idx){
   document.getElementById('lbFavB').textContent=lbFav?'❤️':'🤍';
   const cb=document.getElementById('lbCartB');
   cb.innerHTML='🛒 Agregar al pedido';cb.classList.remove('ok');
+  cb.style.display = lbMultiPres ? 'none' : '';
   document.getElementById('lb').classList.add('open');
   document.body.style.overflow='hidden';
   document.getElementById('mainPage').style.overflow='hidden';
@@ -2523,6 +2548,20 @@ function quickQty(productoId, delta){
   }
   // Actualizar el número visible
   const num = document.getElementById('qoNum-' + pi.id);
+  if(num) num.textContent = item ? item.qty : 0;
+  updateCartBadge();
+}
+function presQty(i, delta){
+  const info = lbPresList[i]; if(!info) return;
+  let item = cartItems.find(c=>c.id===info.key);
+  if(item){
+    item.qty += delta;
+    if(item.qty<=0){ cartItems = cartItems.filter(c=>c.id!==info.key); item=null; }
+  } else if(delta>0){
+    item = {id:info.key, name:info.name, brand:info.brand, img:info.img, variant:info.label, qty:1};
+    cartItems.push(item);
+  }
+  const num = document.getElementById('presNum-'+i);
   if(num) num.textContent = item ? item.qty : 0;
   updateCartBadge();
 }
@@ -3089,36 +3128,23 @@ function sendCartWA(){
   const fecha = new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'});
   const totalUnidades = cartItems.reduce((s,it)=>s+(it.qty||1),0);
 
-  const sep = '━━━━━━━━━━━━━';
-  let msg  = '🛍️ *PEDIDO — SAMJURO*\n' + sep + '\n';
-  msg += `🧾 ${orderId}\n`;
-  msg += `📅 ${fecha}\n`;
-  msg += `🛒 Catálogo (catalogo.samjuro.com.co)\n` + sep + '\n';
-  msg += `🛒 *PRODUCTOS*\n\n`;
+  let msg  = '¡Buen día, equipo de Samjuro Japan! 👋\n\n';
+  msg += `Soy un cliente interesado en cotizar el siguiente pedido:\n\n`;
+  msg += `🧾 *Pedido:* ${orderId}\n`;
+  msg += `📅 *Fecha:* ${fecha}\n`;
+  msg += `🛒 *Origen:* Catálogo móvil (catalogo.samjuro.com.co)\n\n`;
+  msg += `*Productos solicitados (${cartItems.length} ítem${cartItems.length>1?'s':''}, ${totalUnidades} unidad${totalUnidades>1?'es':''}):*\n`;
 
-  // Agrupar por producto (mismo nombre): un título + sus presentaciones
-  const grupos = new Map();
-  cartItems.forEach(item=>{
-    const key = (item.name||'') + '|' + (item.brand||'');
-    if(!grupos.has(key)) grupos.set(key, { name:item.name, items:[] });
-    grupos.get(key).items.push(item);
-  });
-  grupos.forEach(g=>{
-    if(g.items.length === 1){
-      const it = g.items[0];
-      msg += `• ${g.name} (${it.variant}) ×${it.qty||1}\n`;
-    } else {
-      msg += `*${g.name}*\n`;
-      g.items.forEach(it=>{ msg += `   • ${it.variant} ×${it.qty||1}\n`; });
-      msg += `\n`;
-    }
+  cartItems.forEach((item,i)=>{
+    const ref = item.ref || item.sku || item.code || `ID-${item.id ?? '—'}`;
+    const qty = item.qty>1 ? ` ×${item.qty}` : '';
+    msg += `${i+1}. ${item.brand} — ${item.name}\n`;
+    msg += `   • Presentación: ${item.variant}${qty}\n`;
+    msg += `   • Ref: ${ref}\n`;
   });
 
-  msg += sep + '\n';
-  msg += `📦 Total: ${grupos.size} producto${grupos.size!==1?'s':''} · ${totalUnidades} unidad${totalUnidades!==1?'es':''}\n`;
-  msg += sep + '\n';
-  msg += `¡Buen día! Soy cliente y quiero cotizar este pedido.\n`;
-  msg += `¿Me confirman disponibilidad, precio mayorista y tiempos de entrega? 🙏 ¡Gracias!`;
+  msg += `\n¿Me pueden confirmar disponibilidad, precio mayorista y tiempos de entrega? 🙏\n\n`;
+  msg += `Quedo atento(a) a su respuesta. ¡Gracias!`;
 
   window.open('https://wa.me/573178012562?text='+encodeURIComponent(msg),'_blank');
 }
