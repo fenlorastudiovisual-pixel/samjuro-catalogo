@@ -2276,7 +2276,6 @@ function addC(e,b,productId){
   e.stopPropagation();
   const p = P.find(x=>x.id===productId);
   if(!p) return;
-  // ¿Producto con varias presentaciones (tamaños)? -> abrir detalle
   if(p.productosInternos && p.productosInternos.length===1){
     const piC = PI.find(x=>x.id===p.productosInternos[0]);
     if(piC && Array.isArray(piC.presentaciones) && piC.presentaciones.length>1){ openLB(productId); return; }
@@ -2418,7 +2417,6 @@ function openLB(idx){
     // Cada producto del carrusel muestra su nombre, descripción y presentaciones.
     renderBoxProducto(0);
   } else if (presIndiv){
-    // Desplegable de presentaciones + cantidad
     const _pid = presIndivPi ? presIndivPi.id : p.id;
     const _nom = presIndivPi ? presIndivPi.nombre : document.getElementById('lbName').textContent;
     const _marca = (presIndivPi && (presIndivPi.marca_slug==='matizze' || /matizze/i.test(presIndivPi.marca||''))) ? 'MATIZZE' : 'CHECO';
@@ -2988,7 +2986,11 @@ function selV(el){
 }
 function lbGetQty(){ const el=document.getElementById('lbQty'); let n=parseInt((el?el.value:'1').replace(/[^0-9]/g,''),10); return (isNaN(n)||n<1)?1:n; }
 function lbQtyStep(d){ const el=document.getElementById('lbQty'); if(!el) return; el.value=Math.max(1, lbGetQty()+d); }
-function lbSelChange(){ const s=document.getElementById('lbSel'); if(!s) return; const i=parseInt(s.value,10)||0; goSlide(i+lbPresOffset); }
+function lbSelChange(){
+  const s=document.getElementById('lbSel'); if(!s) return;
+  const i=parseInt(s.value,10)||0; goSlide(i+lbPresOffset);
+  const qi=document.getElementById('lbQty'); if(qi) qi.value='1';   // reiniciar cantidad al cambiar presentación
+}
 function lbAddCart(){
   const b=document.getElementById('lbCartB');
   const qty = lbGetQty();
@@ -2997,6 +2999,7 @@ function lbAddCart(){
     const info=lbPresList[i]; if(!info) return;
     const ex=cartItems.find(c=>c.id===info.key);
     if(ex){ ex.qty+=qty; } else { cartItems.push({id:info.key, name:info.name, brand:info.brand, img:info.img, variant:info.label, qty:qty}); }
+    const qi=document.getElementById('lbQty'); if(qi) qi.value='1';   // dejar listo para el siguiente
   } else {
     const selVarEl = document.querySelector('.lv.on');
     const variant = selVarEl ? selVarEl.textContent : 'Estándar';
