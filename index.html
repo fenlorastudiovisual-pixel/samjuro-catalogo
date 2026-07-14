@@ -3148,7 +3148,7 @@ function sendCartWA(){
   grupos.forEach(g=>{
     if(g.items.length === 1){
       const it = g.items[0];
-      msg += `• ${g.name} (${it.variant}) ×${it.qty||1}\n`;
+      msg += `• *${g.name}* (${it.variant}) ×${it.qty||1}\n`;
     } else {
       msg += `*${g.name}*\n`;
       g.items.forEach(it=>{ msg += `   • ${it.variant} ×${it.qty||1}\n`; });
