@@ -1212,6 +1212,13 @@ html[data-tema-promos="spa"] #promoLB{
   .tn-qbtn:active{background:var(--bg)}
   .tn-qinp{width:76px;height:40px;border:1px solid var(--hairline-strong);border-radius:11px;background:var(--white);text-align:center;font-size:17px;font-weight:700;color:var(--ink);flex-shrink:0}
   .qo-inp{width:46px;height:32px;border:1px solid var(--hairline-strong);border-radius:9px;background:var(--white);text-align:center;font-size:.9rem;font-weight:700;color:var(--ink);padding:0;-moz-appearance:textfield}
+  /* ── Carta de Color: mostrar la barra inferior sin salir ── */
+  body.cc-open .botnav{ z-index:415; }
+  body.cc-open .cc-body{ padding-bottom: calc(var(--bot) + 24px); }
+  body.cc-open #cartPanel,
+  body.cc-open #favsPanel,
+  body.cc-open #profilePanel{ z-index:520; }
+  body.cc-open .wa{ display:none; }
 </style>
 <style>
 /* ══ PWA · Guardar en mi celular ══ */
@@ -2620,10 +2627,12 @@ let toneGaleria = [];
 function openCarta(){
   renderCarta();
   document.getElementById('cartaColor').classList.add('open');
+  document.body.classList.add('cc-open');
   document.body.style.overflow='hidden';
 }
 function closeCarta(){
   document.getElementById('cartaColor').classList.remove('open');
+  document.body.classList.remove('cc-open');
   document.body.style.overflow='';
 }
 function renderCarta(){
