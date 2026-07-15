@@ -329,8 +329,15 @@ body{
   display:flex;flex-direction:column;align-items:center;gap:2px;
   flex:1;border:none;background:none;cursor:pointer;padding:8px 0;
   -webkit-tap-highlight-color:transparent;
+  position:relative;
 }
-.ni-ic{font-size:1.2rem;line-height:1}
+/* separador sutil entre iconos (se desvanece arriba y abajo) */
+.ni + .ni::before{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:1px;height:24px;
+  background:linear-gradient(to bottom, transparent, rgba(60,40,30,.13), transparent);
+}
+.ni-ic{font-size:1.2rem;line-height:1;position:relative}
 .ni-lb{font-family:'Syne',sans-serif;font-size:.52rem;font-weight:600;color:var(--ink3);transition:color .2s}
 .ni.on .ni-lb{color:var(--red)}
 .ni-dot{width:3px;height:3px;border-radius:50%;background:var(--red);margin-top:1px;opacity:0;transition:opacity .2s}
@@ -3193,6 +3200,12 @@ function sendCartWA(){
   msg += `¿Me confirman disponibilidad, precio mayorista y tiempos de entrega? 🙏 ¡Gracias!`;
 
   window.open('https://wa.me/573178012562?text='+encodeURIComponent(msg),'_blank');
+
+  // Pedido enviado -> vaciar
+  cartItems = [];
+  updateCartBadge();
+  try{ renderCart(); }catch(e){}
+  try{ closeCart(); }catch(e){}
 }
 
 // ── PROFILE ──
