@@ -677,7 +677,7 @@ body{
 .tone-sku{font-size:.55rem;color:var(--ink3);letter-spacing:.04em}
 
 /* ── PEDIDO RÁPIDO (lista de tonos con cantidades) ── */
-.qo-wrap{margin-top:16px;border-top:1px solid var(--hairline);padding-top:14px}
+.qo-wrap{flex:1 1 100%;width:100%;margin-top:16px;border-top:1px solid var(--hairline);padding-top:14px}
 .qo-toggle{
   width:100%;display:flex;align-items:center;justify-content:space-between;
   padding:13px 16px;background:var(--white);border:1px solid var(--hairline-strong);
@@ -687,12 +687,13 @@ body{
 }
 .qo-toggle:active{transform:scale(.98)}
 .qo-arrow{font-size:.9rem;color:var(--ink3);transition:.2s}
-.qo-list{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+.qo-list{margin-top:10px;background:var(--white);border:1px solid var(--hairline);border-radius:14px;overflow:hidden}
 .qo-row{
-  display:flex;align-items:center;gap:10px;
-  padding:9px 12px;background:var(--white);
-  border:1px solid var(--hairline);border-radius:12px;
+  display:flex;align-items:center;gap:11px;
+  padding:10px 13px;background:transparent;
+  border:none;border-bottom:1px solid var(--hairline);
 }
+.qo-list .qo-row:last-child{border-bottom:none}
 .qo-sw{width:22px;height:22px;border-radius:7px;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
 .qo-name{flex:1;font-size:.8rem;color:var(--ink);line-height:1.2;display:flex;flex-direction:column;gap:1px}
 .qo-cod{font-size:.6rem;color:var(--ink3);letter-spacing:.04em}
@@ -1912,7 +1913,7 @@ async function loadFromSupabase(){
 
 
 // ── STATE ──
-let curSlide=0,lbFav=false,cartCount=0,lbPresOffset=0,lbHasQty=false,lbPresList=[];
+let curSlide=0,lbFav=false,cartCount=0,lbPresOffset=0,lbHasQty=false,lbPresList=[],lbTonoGrid=false;
 let lbBoxMode=false, lbBoxProds=[];
 let activeBrand='todas',activeFilter='todas';
 let searchOpen=false;
@@ -2334,7 +2335,7 @@ function openLB(idx){
   const p=P.find(x=>x.id===idx); if(!p) return;
   curSlide=0;
   lbPresOffset=0;
-  lbHasQty=false; lbPresList=[];
+  lbHasQty=false; lbPresList=[]; lbTonoGrid=false;
   lbFav = favItems.some(f=>f.id===idx);
   document.getElementById('lb').classList.remove('lb-no-img');
 
@@ -2494,6 +2495,7 @@ function openLB(idx){
         }).join('') +
         `</div>` +
         // ── PEDIDO RÁPIDO: botón que despliega lista de tonos con cantidades ──
+        (lbTonoGrid = true, '') +
         `<div class="qo-wrap">
            <button class="qo-toggle" onclick="toggleQuickOrder()">
              <span>🛒 Pedido rápido — elegí cantidades</span>
@@ -2534,6 +2536,9 @@ function openLB(idx){
   cb.innerHTML='🛒 Agregar al pedido';cb.classList.remove('ok');
   const qw=document.getElementById('lbQtyWrap'); if(qw){ qw.style.display = lbHasQty ? 'block' : 'none'; }
   const qi=document.getElementById('lbQty'); if(qi) qi.value='1';
+  // En la cuadrícula de tonos no va el botón general (se usa Pedido rápido o se entra al tono)
+  const actsEl = document.querySelector('#lb .lb-acts');
+  if(actsEl) actsEl.style.display = lbTonoGrid ? 'none' : '';
   document.getElementById('lb').classList.add('open');
   document.body.style.overflow='hidden';
   document.getElementById('mainPage').style.overflow='hidden';
