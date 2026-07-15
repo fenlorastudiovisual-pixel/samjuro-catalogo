@@ -1211,6 +1211,7 @@ html[data-tema-promos="spa"] #promoLB{
   .tn-qbtn{width:40px;height:40px;border:1px solid var(--hairline-strong);border-radius:11px;background:var(--white);color:var(--ink);font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
   .tn-qbtn:active{background:var(--bg)}
   .tn-qinp{width:76px;height:40px;border:1px solid var(--hairline-strong);border-radius:11px;background:var(--white);text-align:center;font-size:17px;font-weight:700;color:var(--ink);flex-shrink:0}
+  .qo-inp{width:46px;height:32px;border:1px solid var(--hairline-strong);border-radius:9px;background:var(--white);text-align:center;font-size:.9rem;font-weight:700;color:var(--ink);padding:0;-moz-appearance:textfield}
 </style>
 <style>
 /* ══ PWA · Guardar en mi celular ══ */
@@ -2515,7 +2516,7 @@ function openLB(idx){
                        <span class="qo-name">${nombreL}<span class="qo-cod">${cod}</span></span>
                        <div class="qo-qty">
                          <button class="qo-btn" onclick="quickQty('${pi.id}',-1)">−</button>
-                         <span class="qo-num" id="qoNum-${pi.id}">${q}</span>
+                         <input class="qo-num qo-inp" id="qoNum-${pi.id}" type="text" inputmode="numeric" value="${q}" onclick="this.select()" oninput="this.value=this.value.replace(/[^0-9]/g,'')" onchange="quickSet('${pi.id}', this.value)">
                          <button class="qo-btn" onclick="quickQty('${pi.id}',1)">+</button>
                        </div>
                      </div>`;
@@ -2586,7 +2587,27 @@ function quickQty(productoId, delta){
   }
   // Actualizar el número visible
   const num = document.getElementById('qoNum-' + pi.id);
-  if(num) num.textContent = item ? item.qty : 0;
+  if(num){ const v = item ? item.qty : 0; if('value' in num) num.value = v; else num.textContent = v; }
+  updateCartBadge();
+}
+// Escribir la cantidad directamente
+function quickSet(productoId, val){
+  const pi = PI.find(x => String(x.id) === String(productoId));
+  if(!pi) return;
+  let n = parseInt(String(val).replace(/[^0-9]/g,''),10); if(isNaN(n)||n<0) n=0;
+  const nombreL = pi.nombre.replace(/^Esmalte\s*#?\d+\s*/, '').replace(/^Tinte\s+Matizze\s+/, '').replace(/^B\.Life\s+Color\s+/, 'B.Life ').replace(/^Tono\s+sobre\s+Tono\s+/, '');
+  const pres0 = pi.presentaciones && pi.presentaciones[0];
+  const fbImg = (IMG.esmalte && IMG.esmalte[0]) || '';
+  const img = (pi.imagen_principal && pi.imagen_principal.trim()) ? pi.imagen_principal.trim()
+            : (pres0 && pres0.imagen_url && pres0.imagen_url.trim()) ? pres0.imagen_url.trim()
+            : fbImg;
+  const marca = (pi.marca_slug==='matizze'||/matizze/i.test(pi.marca||'')) ? 'MATIZZE' : 'CHECO';
+  let item = cartItems.find(c => c.id === pi.id);
+  if(n === 0){ cartItems = cartItems.filter(c => c.id !== pi.id); }
+  else if(item){ item.qty = n; }
+  else { cartItems.push({id: pi.id, name: nombreL, brand: marca, img: img, variant: 'Estándar', qty: n}); }
+  const num = document.getElementById('qoNum-' + pi.id);
+  if(num && 'value' in num) num.value = n;
   updateCartBadge();
 }
 
