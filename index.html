@@ -1196,6 +1196,11 @@ html[data-tema-promos="spa"] #promoLB{
   .lb-qty{display:flex;align-items:center;gap:10px;margin-bottom:16px}
   .lb-qbtn{width:44px;height:44px;border:1px solid var(--hairline-strong);border-radius:11px;background:var(--white);color:var(--ink);font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
   .lb-qinp{flex:1;height:44px;border:1px solid var(--hairline-strong);border-radius:11px;background:var(--white);text-align:center;font-size:17px;font-weight:700;color:var(--ink);width:100%}
+  .tn-qwrap{margin:4px 0 14px}
+  .tn-ql{font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px}
+  .tn-qty{display:flex;align-items:center;gap:10px}
+  .tn-qbtn{width:42px;height:42px;border:1px solid var(--hairline-strong);border-radius:11px;background:var(--white);color:var(--ink);font-size:21px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+  .tn-qinp{flex:1;height:42px;border:1px solid var(--hairline-strong);border-radius:11px;background:var(--white);text-align:center;font-size:17px;font-weight:700;color:var(--ink);width:100%}
 </style>
 <style>
 /* ══ PWA · Guardar en mi celular ══ */
@@ -1445,6 +1450,14 @@ html[data-tema-promos="spa"] #promoLB{
     </div>
     <div class="tsheet-desc" id="toneDesc"></div>
     <div class="ctone-pinceles" id="tonePinceles"></div>
+    <div class="tn-qwrap">
+      <div class="tn-ql">Cantidad</div>
+      <div class="tn-qty">
+        <button class="tn-qbtn" onclick="tnStep('toneQty',-1)">−</button>
+        <input class="tn-qinp" id="toneQty" type="text" inputmode="numeric" value="1" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        <button class="tn-qbtn" onclick="tnStep('toneQty',1)">+</button>
+      </div>
+    </div>
     <div class="tsheet-acts">
       <button class="tsheet-fav" id="toneFavB" onclick="toneToggleFav()">🤍</button>
       <button class="tsheet-add" id="toneCartB" onclick="toneAddCart()">Agregar al pedido</button>
@@ -1473,6 +1486,14 @@ html[data-tema-promos="spa"] #promoLB{
       <div class="ctone-title" id="ctoneName"></div>
       <div class="ctone-stars" id="ctoneStars"></div>
       <div class="ctone-desc" id="ctoneDesc"></div>
+      <div class="tn-qwrap">
+        <div class="tn-ql">Cantidad</div>
+        <div class="tn-qty">
+          <button class="tn-qbtn" onclick="tnStep('ctoneQty',-1)">−</button>
+          <input class="tn-qinp" id="ctoneQty" type="text" inputmode="numeric" value="1" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <button class="tn-qbtn" onclick="tnStep('ctoneQty',1)">+</button>
+        </div>
+      </div>
       <div class="ctone-acts">
         <button class="ctone-fav" id="ctoneFavB" onclick="cartaToggleFav()">🤍</button>
         <button class="ctone-add" id="ctoneCartB" onclick="cartaAddCart()">Agregar al pedido</button>
@@ -2684,6 +2705,7 @@ function abrirDetalleTonoCarta(productoId){
   const fav = favItems.some(f=>f.id===pi.id);
   document.getElementById('ctoneFavB').textContent = fav ? '❤️' : '🤍';
   const cb=document.getElementById('ctoneCartB'); cb.textContent='Agregar al pedido'; cb.classList.remove('ok');
+  const cq=document.getElementById('ctoneQty'); if(cq) cq.value='1';
   document.getElementById('cartaLB').classList.add('open');
   document.body.style.overflow='hidden';
 }
@@ -2782,13 +2804,15 @@ function cartaToggleFav(){
 }
 function cartaAddCart(){
   if(!cartaToneActual) return;
+  const qty = tnGetQty('ctoneQty');
   const pres = cartaToneActual.presentaciones && cartaToneActual.presentaciones[0];
   const img = (cartaToneActual.imagen_tono) ? cartaToneActual.imagen_tono : '';
   const ex = cartItems.find(c=>c.id===cartaToneActual.id);
-  if(ex){ ex.qty++; } else {
-    cartItems.push({id:cartaToneActual.id, name:cartaToneActual.nombre, brand:cartaToneActual.marca, img:img, variant:'Estándar', qty:1});
+  if(ex){ ex.qty+=qty; } else {
+    cartItems.push({id:cartaToneActual.id, name:cartaToneActual.nombre, brand:cartaToneActual.marca, img:img, variant:'Estándar', qty:qty});
   }
   updateCartBadge();
+  const qi=document.getElementById('ctoneQty'); if(qi) qi.value='1';
   const cb=document.getElementById('ctoneCartB'); cb.textContent='✓ Agregado'; cb.classList.add('ok');
   setTimeout(()=>{ cb.textContent='Agregar al pedido'; cb.classList.remove('ok'); }, 1200);
 }
@@ -2909,15 +2933,19 @@ function toneToggleFav(){
   else { favItems.push({id:toneActual.id, name:toneActual.nombre, brand:toneActual.marca, img:(pres&&pres.imagen_url)||''}); }
   document.getElementById('toneFavB').textContent = (i>=0)?'🤍':'❤️';
 }
+function tnGetQty(id){ const el=document.getElementById(id); let n=parseInt((el?el.value:'1').replace(/[^0-9]/g,''),10); return (isNaN(n)||n<1)?1:n; }
+function tnStep(id,d){ const el=document.getElementById(id); if(!el) return; el.value=Math.max(1, tnGetQty(id)+d); }
 function toneAddCart(){
   if(!toneActual) return;
+  const qty = tnGetQty('toneQty');
   const pres = toneActual.presentaciones && toneActual.presentaciones[0];
   const img = (pres && pres.imagen_url) ? pres.imagen_url : '';
   const ex = cartItems.find(c=>c.id===toneActual.id);
-  if(ex){ ex.qty++; } else {
-    cartItems.push({id:toneActual.id, name:toneActual.nombre, brand:toneActual.marca, img:img, variant:'Estándar', qty:1});
+  if(ex){ ex.qty+=qty; } else {
+    cartItems.push({id:toneActual.id, name:toneActual.nombre, brand:toneActual.marca, img:img, variant:'Estándar', qty:qty});
   }
   updateCartBadge();
+  const qi=document.getElementById('toneQty'); if(qi) qi.value='1';
   const cb=document.getElementById('toneCartB'); cb.textContent='✓ Agregado'; cb.classList.add('ok');
   setTimeout(()=>{ cb.textContent='Agregar al pedido'; cb.classList.remove('ok'); }, 1200);
 }
