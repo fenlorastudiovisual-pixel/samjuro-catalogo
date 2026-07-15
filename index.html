@@ -2296,7 +2296,7 @@ function fav(e,b,productId){
   if(isNowFav && productId){
     const p=P.find(x=>x.id===productId);
     if(p && !favItems.find(f=>f.id===p.id)){
-      favItems.push({id:p.id, name:p.name, brand:p.brandLabel, img:p.imgs[0]||''});
+      favItems.push({id:p.id, name:p.name, brand:p.brandLabel, img:imgRealProd(p)});
       updateFavBadge();
     }
   } else if(!isNowFav && productId){
@@ -2840,7 +2840,13 @@ function cartaToggleFav(){
   const i = favItems.findIndex(f=>f.id===cartaToneActual.id);
   const pres = cartaToneActual.presentaciones && cartaToneActual.presentaciones[0];
   if(i>=0){ favItems.splice(i,1); }
-  else { favItems.push({id:cartaToneActual.id, name:cartaToneActual.nombre, brand:cartaToneActual.marca, img:(cartaToneActual.imagen_tono)||''}); }
+  else {
+    const _pres = cartaToneActual.presentaciones && cartaToneActual.presentaciones[0];
+    const _img = (cartaToneActual.imagen_principal && cartaToneActual.imagen_principal.trim()) ? cartaToneActual.imagen_principal.trim()
+               : (_pres && _pres.imagen_url && _pres.imagen_url.trim()) ? _pres.imagen_url.trim()
+               : ((cartaToneActual.imagen_tono||'').split(/[\n,]+/)[0]||'').trim();
+    favItems.push({id:cartaToneActual.id, name:cartaToneActual.nombre, brand:cartaToneActual.marca, img:_img});
+  }
   document.getElementById('ctoneFavB').textContent = (i>=0)?'🤍':'❤️';
 }
 function cartaAddCart(){
@@ -2975,8 +2981,19 @@ function toneToggleFav(){
   const i = favItems.findIndex(f=>f.id===toneActual.id);
   const pres = toneActual.presentaciones && toneActual.presentaciones[0];
   if(i>=0){ favItems.splice(i,1); }
-  else { favItems.push({id:toneActual.id, name:toneActual.nombre, brand:toneActual.marca, img:(pres&&pres.imagen_url)||''}); }
+  else {
+    const _img = (toneActual.imagen_principal && toneActual.imagen_principal.trim()) ? toneActual.imagen_principal.trim()
+               : (pres && pres.imagen_url && pres.imagen_url.trim()) ? pres.imagen_url.trim()
+               : ((toneActual.imagen_tono||'').split(/[\n,]+/)[0]||'').trim();
+    favItems.push({id:toneActual.id, name:toneActual.nombre, brand:toneActual.marca, img:_img});
+  }
   document.getElementById('toneFavB').textContent = (i>=0)?'🤍':'❤️';
+}
+function imgRealProd(p){
+  if(!p) return '';
+  if(p.coleccionPortada && p.coleccionPortada.trim()) return p.coleccionPortada;
+  if(p.imgsReales && p.imgsReales.length > 0) return p.imgsReales[0];
+  return (p.imgs && p.imgs[0]) || '';
 }
 function esEsmalteTono(pi){
   const cat = (pi.categoria || pi.categoria_slug || '').toLowerCase();
@@ -3102,7 +3119,7 @@ document.getElementById('lbFavB').addEventListener('click',()=>{
   const curP=P.find(x=>x.name===pName);
   if(curP){
     if(lbFav && !favItems.find(f=>f.id===curP.id)){
-      favItems.push({id:curP.id, name:curP.name, brand:curP.brandLabel, img:curP.imgs[0]||img});
+      favItems.push({id:curP.id, name:curP.name, brand:curP.brandLabel, img:imgRealProd(curP)||img});
     } else if(!lbFav){
       favItems=favItems.filter(f=>f.id!==curP.id);
     }
