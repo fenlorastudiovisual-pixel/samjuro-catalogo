@@ -2714,8 +2714,14 @@ function abrirDetalleTonoCarta(productoId){
   document.getElementById('ctoneName').textContent = nombreLimpio || pi.nombre || '';
   let st=''; for(let i=1;i<=5;i++) st+='★';
   document.getElementById('ctoneStars').textContent = st;
-  document.getElementById('ctoneDesc').textContent =
-    limpiarDesc(pi.descripcion_corta || pi.descripcion_larga) || 'Consultá disponibilidad y cotización por WhatsApp.';
+  {
+    const cdEl = document.getElementById('ctoneDesc');
+    if (esEsmalteTono(pi)){ cdEl.textContent=''; cdEl.style.display='none'; }
+    else {
+      cdEl.style.display='';
+      cdEl.textContent = limpiarDesc(pi.descripcion_corta || pi.descripcion_larga) || 'Consultá disponibilidad y cotización por WhatsApp.';
+    }
+  }
   const fav = favItems.some(f=>f.id===pi.id);
   document.getElementById('ctoneFavB').textContent = fav ? '❤️' : '🤍';
   const cb=document.getElementById('ctoneCartB'); cb.textContent='Agregar al pedido'; cb.classList.remove('ok');
@@ -2840,14 +2846,12 @@ function abrirDetalleTono(productoId){
   // ── Galería del tono: imagen principal + imágenes adicionales ──
   // Si no hay galería propia, se usa la imagen de la presentación o la genérica.
   let galeria = [];
-  // ── Imagen(es) del TONO (campo "Carta de Color") van PRIMERO: son lo que representa
-  //    el color real. Puede traer varias URLs (una por línea o separadas por coma),
-  //    igual que en la Carta de Color grande.
+  // ── El PRODUCTO (frasco) va PRIMERO; la(s) imagen(es) del TONO (color) van después.
+  if (pi.imagen_principal && pi.imagen_principal.trim()) galeria.push(pi.imagen_principal.trim());
+  if (Array.isArray(pi.imagenes)) pi.imagenes.forEach(u => { if (u && u.trim()) galeria.push(u.trim()); });
   if (pi.imagen_tono && pi.imagen_tono.trim()){
     pi.imagen_tono.split(/[\n,]+/).map(s=>s.trim()).filter(s=>s.length>0).forEach(u => galeria.push(u));
   }
-  if (pi.imagen_principal && pi.imagen_principal.trim()) galeria.push(pi.imagen_principal.trim());
-  if (Array.isArray(pi.imagenes)) pi.imagenes.forEach(u => { if (u && u.trim()) galeria.push(u.trim()); });
   // Imágenes de cada presentación con nombre de pincel → se agregan y se mapea su índice
   tonePincelIdx = {};
   const presList = Array.isArray(pi.presentaciones) ? pi.presentaciones : [];
@@ -2904,8 +2908,14 @@ function abrirDetalleTono(productoId){
   document.getElementById('toneName').textContent = nombreLimpio || pi.nombre || '';
   let st=''; for(let i=1;i<=5;i++) st+='★';
   document.getElementById('toneStars').textContent = st;
-  document.getElementById('toneDesc').textContent =
-    limpiarDesc(pi.descripcion_corta || pi.descripcion_larga) || 'Consultá disponibilidad y cotización por WhatsApp.';
+  {
+    const dEl = document.getElementById('toneDesc');
+    if (esEsmalteTono(pi)){ dEl.textContent=''; dEl.style.display='none'; }
+    else {
+      dEl.style.display='';
+      dEl.textContent = limpiarDesc(pi.descripcion_corta || pi.descripcion_larga) || 'Consultá disponibilidad y cotización por WhatsApp.';
+    }
+  }
   renderPinceles(pi, 'tonePinceles');
   const fav = favItems.some(f=>f.id===pi.id);
   document.getElementById('toneFavB').textContent = fav ? '❤️' : '🤍';
@@ -2946,6 +2956,10 @@ function toneToggleFav(){
   if(i>=0){ favItems.splice(i,1); }
   else { favItems.push({id:toneActual.id, name:toneActual.nombre, brand:toneActual.marca, img:(pres&&pres.imagen_url)||''}); }
   document.getElementById('toneFavB').textContent = (i>=0)?'🤍':'❤️';
+}
+function esEsmalteTono(pi){
+  const cat = (pi.categoria || pi.categoria_slug || '').toLowerCase();
+  return cat.indexOf('esmalte') >= 0;
 }
 function tnGetQty(id){ const el=document.getElementById(id); let n=parseInt((el?el.value:'1').replace(/[^0-9]/g,''),10); return (isNaN(n)||n<1)?1:n; }
 function tnStep(id,d){ const el=document.getElementById(id); if(!el) return; el.value=Math.max(1, tnGetQty(id)+d); }
