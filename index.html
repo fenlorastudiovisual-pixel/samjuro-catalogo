@@ -1895,6 +1895,8 @@ async function loadFromSupabase(){
     // Render inicial
     applyFilters();
     console.log(`✅ Catálogo cargado: ${P.length} tarjetas agrupadas, ${PI.length} productos individuales`);
+    // Corrige automáticamente las fotos de Guardados/Pedido guardados con la imagen vieja
+    try{ refrescarImgsGuardadas(); }catch(e){}
 
     // Activar actualización en tiempo real (solo una vez)
     activarRealtime();
@@ -2988,6 +2990,35 @@ function toneToggleFav(){
     favItems.push({id:toneActual.id, name:toneActual.nombre, brand:toneActual.marca, img:_img});
   }
   document.getElementById('toneFavB').textContent = (i>=0)?'🤍':'❤️';
+}
+// Refresca las imágenes de Guardados/Pedido guardados antes (que tenían la foto genérica)
+function refrescarImgsGuardadas(){
+  let cambio = false;
+  const buscarImg = (id) => {
+    const p = P.find(x => String(x.id) === String(id));
+    if (p) return imgRealProd(p);
+    const pi = PI.find(x => String(x.id) === String(id));
+    if (pi){
+      if (pi.imagen_principal && pi.imagen_principal.trim()) return pi.imagen_principal.trim();
+      const pr = pi.presentaciones && pi.presentaciones[0];
+      if (pr && pr.imagen_url && pr.imagen_url.trim()) return pr.imagen_url.trim();
+      const t = ((pi.imagen_tono||'').split(/[\n,]+/)[0]||'').trim();
+      if (t) return t;
+    }
+    return null;
+  };
+  favItems.forEach(f => { const n = buscarImg(f.id); if (n && n !== f.img){ f.img = n; cambio = true; } });
+  cartItems.forEach(c => {
+    let base = String(c.id);
+    if (base.indexOf('p:') === 0) base = base.slice(2).split('::')[0];   // líneas por presentación
+    const n = buscarImg(base); if (n && n !== c.img){ c.img = n; cambio = true; }
+  });
+  if (cambio){
+    try{ guardarFavoritos(); }catch(e){}
+    try{ guardarCarrito(); }catch(e){}
+    try{ if(typeof renderFavs === 'function') renderFavs(); }catch(e){}
+    try{ if(typeof renderCart === 'function') renderCart(); }catch(e){}
+  }
 }
 function imgRealProd(p){
   if(!p) return '';
