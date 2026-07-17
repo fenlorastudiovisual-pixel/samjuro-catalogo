@@ -1604,7 +1604,7 @@ let MARCAS_META = {}; // Detalles de marca (emoji/eslogan/color/desc) leídos de
 let CATEGORIAS_ORDEN = {}; // slug de categoría → número de orden (definido en el admin)
 
 // Mapeo de slugs de colección/categoría → metadata visual de tarjeta
-function mapearTarjeta(coleccion, marca, categoria, productos, categoria_slug){
+function mapearTarjeta(coleccion, marca, categoria, productos, categoria_slug, marca_slug){
   // Determina la imagen base según el tipo
   let imgsKey = 'esmalte';
   const catLow = (categoria || '').toLowerCase();
@@ -1645,7 +1645,11 @@ function mapearTarjeta(coleccion, marca, categoria, productos, categoria_slug){
   }
 
   return {
-    brand: marca.toLowerCase(),
+    // Usar el SLUG de la marca (los chips filtran por slug). Si no hay, se
+    // genera desde el nombre (ej. "#OK" -> "ok") para no dejar productos ocultos.
+    brand: (marca_slug || '').toLowerCase()
+           || (marca || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+              .replace(/ñ/g,'n').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,''),
     brandLabel: marca,
     cats: cats,
     vars: vars.length ? vars : [coleccion || categoria],
@@ -1762,6 +1766,7 @@ async function loadFromSupabase(){
       if (!grupos.has(clave)) {
         grupos.set(clave, {
           marca: prod.marca,
+          marca_slug: prod.marca_slug,
           categoria: prod.categoria,
           coleccion: tematica ? prod.coleccion : null,
           coleccion_slug: tematica ? prod.coleccion_slug : null,
@@ -1779,7 +1784,7 @@ async function loadFromSupabase(){
     let id = 0;
     P = [];
     grupos.forEach(grupo => {
-      const tarjeta = mapearTarjeta(grupo.coleccion, grupo.marca, grupo.categoria, grupo.productos, grupo.categoria_slug);
+      const tarjeta = mapearTarjeta(grupo.coleccion, grupo.marca, grupo.categoria, grupo.productos, grupo.categoria_slug, grupo.marca_slug);
       const titulo = grupo.coleccion
         ? grupo.coleccion
         : (grupo.productos[0] ? grupo.productos[0].nombre : grupo.categoria);
