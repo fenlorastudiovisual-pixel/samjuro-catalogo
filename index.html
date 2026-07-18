@@ -1596,6 +1596,53 @@ const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_e9Lhzf9Mtj_E7ogWFfkfhw_PQfskONJ
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 // ══════════════════════════════════════════════════════════════════
+// MÉTRICAS — analítica anónima del catálogo
+// Registra eventos (visitas, productos vistos, marca, carrito, etc.) en la
+// tabla 'eventos' de Supabase. Es anónimo (un código por dispositivo, NO un
+// nombre) + ubicación aproximada por IP. Nunca bloquea la interfaz: si algo
+// falla, el catálogo sigue igual. Requiere haber corrido 'metricas.sql'.
+// ══════════════════════════════════════════════════════════════════
+const SJMx = (function(){
+  const K_VID='sj_vid', K_SID='sj_sid', K_GEO='sj_geo';
+  function rid(p){ return p+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10); }
+  function getVid(){ try{ let v=localStorage.getItem(K_VID); if(!v){ v=rid('v-'); localStorage.setItem(K_VID,v);} return v; }catch(e){ return 'anon'; } }
+  function getSid(){ try{ let s=sessionStorage.getItem(K_SID); if(!s){ s=rid('s-'); sessionStorage.setItem(K_SID,s);} return s; }catch(e){ return 'anon'; } }
+  function device(){ return /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent||'') ? 'Celular' : 'Computador'; }
+  let geo=null;
+  try{ const g=sessionStorage.getItem(K_GEO); if(g) geo=JSON.parse(g); }catch(e){}
+  async function cargarGeo(){
+    if(geo) return geo;
+    try{
+      const r=await fetch('https://ipwho.is/?fields=success,city,region,country_code,country');
+      const d=await r.json();
+      if(d && d.success!==false){
+        geo={ ciudad:d.city||'', region:d.region||'', pais:d.country_code||d.country||'' };
+        try{ sessionStorage.setItem(K_GEO, JSON.stringify(geo)); }catch(e){}
+      }
+    }catch(e){}
+    return geo;
+  }
+  async function track(tipo, extra){
+    try{
+      const g = geo || await cargarGeo();
+      const row = Object.assign({
+        visitor_id:getVid(), session_id:getSid(), tipo:tipo,
+        dispositivo:device(),
+        referrer:(document.referrer||'').slice(0,300),
+        user_agent:(navigator.userAgent||'').slice(0,300),
+        pais:g?g.pais:'', region:g?g.region:'', ciudad:g?g.ciudad:''
+      }, extra||{});
+      // fire-and-forget: no esperamos la respuesta
+      sb.from('eventos').insert(row).then(function(){}, function(){});
+    }catch(e){}
+  }
+  return { track:track, cargarGeo:cargarGeo };
+})();
+function trackEvento(tipo, extra){ try{ SJMx.track(tipo, extra); }catch(e){} }
+// Al cargar: primero ubicación aproximada, luego la visita (así la visita ya trae ciudad)
+window.addEventListener('load', function(){ SJMx.cargarGeo().finally(function(){ trackEvento('pageview'); }); });
+
+// ══════════════════════════════════════════════════════════════════
 // ARRAYS DEL CATÁLOGO
 // ══════════════════════════════════════════════════════════════════
 // P  → 32 tarjetas agrupadas (vista principal) — se generan dinámicamente
@@ -2026,6 +2073,7 @@ function setF(btn,cat){
   document.querySelectorAll('.fp').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   activeFilter=cat;
+  if(cat && cat!=='todas') trackEvento('ver_categoria', { categoria:(btn.textContent||cat).trim() });
   applyFilters();
 }
 // ══════════════════════════════════════════════════════════════════
@@ -2115,6 +2163,7 @@ function filterBrand(brand,el){
   document.querySelectorAll('.bp').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
   activeBrand=brand;
+  trackEvento('ver_marca', { marca:brand });
   // Al cambiar marca, regenerar filtros de categoría y resetear filtro activo
   activeFilter='todas';
   renderCategoryFilters();
@@ -2383,6 +2432,7 @@ function addC(e,b,productId){
 function limpiarDesc(t){ return (t||'').replace(/\s*\[[^\]]*\]\s*/g,' ').replace(/\s{2,}/g,' ').trim(); }
 function openLB(idx){
   const p=P.find(x=>x.id===idx); if(!p) return;
+  trackEvento('ver_producto', { producto_id:String(p.id), producto_nombre:p.name, marca:p.brandLabel, categoria:(p.categoria_nombre||p.categoria_slug||'') });
   curSlide=0;
   lbPresOffset=0;
   lbHasQty=false; lbPresList=[]; lbTonoGrid=false; lbSelUsaPlaceholder=false;
@@ -3188,6 +3238,7 @@ function lbAddCart(){
     const info=lbPresList[i]; if(!info) return;
     const ex=cartItems.find(c=>c.id===info.key);
     if(ex){ ex.qty+=qty; } else { cartItems.push({id:info.key, name:info.name, brand:info.brand, img:info.img, variant:info.label, qty:qty}); }
+    trackEvento('agregar_carrito', { producto_nombre:info.name, marca:info.brand, meta:{ presentacion:info.label, cantidad:qty } });
     const qi=document.getElementById('lbQty'); if(qi) qi.value='1';   // dejar listo para el siguiente
   } else {
     const selVarEl = document.querySelector('.lv.on');
@@ -3200,6 +3251,7 @@ function lbAddCart(){
     if(existing){ existing.qty+=qty; } else {
       cartItems.push({id:Date.now(), name:pName, brand:pBrand, img:img, variant:variant, qty:qty});
     }
+    trackEvento('agregar_carrito', { producto_nombre:pName, marca:pBrand, meta:{ variante:variant, cantidad:qty } });
   }
   b.innerHTML='✓ Agregado';b.classList.add('ok');
   updateCartBadge();
@@ -3211,6 +3263,7 @@ document.getElementById('lbFavB').addEventListener('click',()=>{
   const pName=document.getElementById('lbName').textContent;
   const pBrand=document.getElementById('lbBrand').textContent;
   const img=document.querySelector('#lbSlides .lb-slide img')?.src||'';
+  if(lbFav) trackEvento('favorito', { producto_nombre:pName, marca:pBrand });
   const curP=P.find(x=>x.name===pName);
   if(curP){
     if(lbFav && !favItems.find(f=>f.id===curP.id)){
@@ -3224,6 +3277,7 @@ document.getElementById('lbFavB').addEventListener('click',()=>{
 
 // ── WHATSAPP ──
 function openWA(){
+  trackEvento('whatsapp', { meta:{ origen:'boton_wa' } });
   const msg=encodeURIComponent('¡Hola Samjuro Japan! 👋 Me interesan sus productos CHECO y MATIZZE. ¿Podrían darme información sobre precios y disponibilidad?');
   window.open('https://wa.me/573178012562?text='+msg,'_blank');
 }
@@ -3351,6 +3405,7 @@ function sendCartWA(){
   msg += `¡Buen día! Soy cliente y quiero cotizar este pedido.\n`;
   msg += `¿Me confirman disponibilidad, precio mayorista y tiempos de entrega? 🙏 ¡Gracias!`;
 
+  trackEvento('pedido', { meta:{ order_id:orderId, productos:grupos.size, unidades:totalUnidades } });
   window.open('https://wa.me/573178012562?text='+encodeURIComponent(msg),'_blank');
 
   // Pedido enviado -> vaciar
