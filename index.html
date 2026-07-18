@@ -1233,6 +1233,10 @@ html[data-tema-promos="spa"] #promoLB{
   body.cc-open #favsPanel,
   body.cc-open #profilePanel{ z-index:520; }
   body.cc-open .wa{ display:none; }
+  .bp-wrap{position:relative}
+  .bp-hint{position:absolute;right:0;top:0;bottom:0;width:34px;display:none;align-items:center;justify-content:flex-end;
+    padding-right:4px;pointer-events:none;font-size:20px;color:var(--ink3);
+    background:linear-gradient(to right, transparent, var(--bg) 62%)}
 </style>
 <style>
 /* ══ PWA · Guardar en mi celular ══ */
@@ -1346,12 +1350,11 @@ html[data-tema-promos="spa"] #promoLB{
   <!-- MARCAS -->
   <div class="brand-sec">
     <div class="brand-sec-t">Nuestras Marcas</div>
-    <div class="brand-pills" id="brandPills">
-      <div class="bp on" data-brand="todas" onclick="filterBrand('todas',this)">
-        <div class="bp-icon">✨</div>
-        <div><div class="bp-name">Todas</div><div class="bp-sub" id="bpTodasSub">marcas</div></div>
+    <div class="bp-wrap">
+      <div class="brand-pills" id="brandPills">
+        <!-- Los pills de cada marca se generan dinámicamente desde Supabase -->
       </div>
-      <!-- Los pills de cada marca se generan dinámicamente desde Supabase -->
+      <div class="bp-hint" id="bpHint">›</div>
     </div>
   </div>
 
@@ -2040,19 +2043,22 @@ function obtenerMarcasConProductos(){
     if (!slug || mapa.has(slug)) return;
     mapa.set(slug, { slug: slug, nombre: prod.marca || slug });
   });
-  // Devuelve ordenado por nombre
-  return Array.from(mapa.values()).sort((a,b) => a.nombre.localeCompare(b.nombre));
+  // Orden definido en el admin (campo 'orden'); si no hay, por nombre
+  return Array.from(mapa.values()).sort((a,b) => {
+    const oa = (MARCAS_META[a.slug] && MARCAS_META[a.slug].orden != null) ? MARCAS_META[a.slug].orden : 9999;
+    const ob = (MARCAS_META[b.slug] && MARCAS_META[b.slug].orden != null) ? MARCAS_META[b.slug].orden : 9999;
+    if (oa !== ob) return oa - ob;
+    return a.nombre.localeCompare(b.nombre);
+  });
 }
 
 function renderBrandPills(){
   const cont = document.getElementById('brandPills');
   if (!cont) return;
   const marcas = obtenerMarcasConProductos();
-  // Subtítulo de "Todas" con el número real
-  const sub = document.getElementById('bpTodasSub');
-  if (sub) sub.textContent = marcas.length === 1 ? '1 marca' : `${marcas.length} marcas`;
-  // Quitar pills de marca anteriores (conserva "Todas")
-  cont.querySelectorAll('.bp[data-brand]:not([data-brand="todas"])').forEach(el => el.remove());
+  // Sin pill "Todas": siempre hay una marca seleccionada
+  if (activeBrand === 'todas' && marcas.length) activeBrand = marcas[0].slug;
+  cont.innerHTML = '';
   // Crear un pill por marca
   marcas.forEach(marca => {
     const meta = MARCAS_META[marca.slug] || {};
@@ -2060,7 +2066,7 @@ function renderBrandPills(){
     const eslogan = meta.eslogan || '';
     const nombre = meta.nombre || marca.nombre;
     const div = document.createElement('div');
-    div.className = 'bp';
+    div.className = 'bp' + (marca.slug === activeBrand ? ' on' : '');
     div.setAttribute('data-brand', marca.slug);
     div.setAttribute('onclick', `filterBrand('${marca.slug}',this)`);
     div.innerHTML =
@@ -2069,6 +2075,21 @@ function renderBrandPills(){
       `<div class="bp-sub">${eslogan}</div></div>`;
     cont.appendChild(div);
   });
+  actualizarBpHint();
+  row_bp_scroll();
+}
+function row_bp_scroll(){
+  const row = document.getElementById('brandPills');
+  if(row && !row._hintBound){ row._hintBound = true; row.addEventListener('scroll', actualizarBpHint); }
+}
+// Flecha que indica que se puede deslizar para ver más marcas
+function actualizarBpHint(){
+  const row = document.getElementById('brandPills');
+  const hint = document.getElementById('bpHint');
+  if(!row || !hint) return;
+  const hay = row.scrollWidth > row.clientWidth + 8;
+  const alFinal = row.scrollLeft + row.clientWidth >= row.scrollWidth - 8;
+  hint.style.display = (hay && !alFinal) ? 'flex' : 'none';
 }
 
 function renderProfileBrands(){
