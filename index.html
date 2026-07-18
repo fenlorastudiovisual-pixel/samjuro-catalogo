@@ -1945,7 +1945,7 @@ async function loadFromSupabase(){
 
 
 // ── STATE ──
-let curSlide=0,lbFav=false,cartCount=0,lbPresOffset=0,lbHasQty=false,lbPresList=[],lbTonoGrid=false;
+let curSlide=0,lbFav=false,cartCount=0,lbPresOffset=0,lbHasQty=false,lbPresList=[],lbTonoGrid=false,lbSelUsaPlaceholder=false;
 let lbBoxMode=false, lbBoxProds=[];
 let activeBrand='todas',activeFilter='todas';
 let searchOpen=false;
@@ -2385,7 +2385,7 @@ function openLB(idx){
   const p=P.find(x=>x.id===idx); if(!p) return;
   curSlide=0;
   lbPresOffset=0;
-  lbHasQty=false; lbPresList=[]; lbTonoGrid=false;
+  lbHasQty=false; lbPresList=[]; lbTonoGrid=false; lbSelUsaPlaceholder=false;
   lbFav = favItems.some(f=>f.id===idx);
   document.getElementById('lb').classList.remove('lb-no-img');
 
@@ -2507,8 +2507,13 @@ function openLB(idx){
       const img = (pr.imagen_url && pr.imagen_url.trim()) ? pr.imagen_url.trim() : _fb;
       return { label:etiqueta, key:'p:'+_pid+'::'+etiqueta, img:img, name:_nom, brand:_marca };
     });
+    // Con VARIAS presentaciones (y que NO sea esmalte) arrancamos con un
+    // placeholder "Elige una opción": ninguna presentación marcada, y el
+    // carrusel muestra la portada hasta que el cliente elija una.
+    lbSelUsaPlaceholder = (!esEsmalteCat && presIndiv.length > 1);
     lbVarsEl.innerHTML = '<div class="lb-selwrap"><select class="lb-sel" id="lbSel" onchange="lbSelChange()">'
-      + lbPresList.map((info,i)=>`<option value="${i}">${info.label}</option>`).join('')
+      + (lbSelUsaPlaceholder ? '<option value="" disabled selected>Elige una opción</option>' : '')
+      + lbPresList.map((info,i)=>`<option value="${i}"${(!lbSelUsaPlaceholder && i===0)?' selected':''}>${info.label}</option>`).join('')
       + '</select><span class="lb-chev">▼</span></div>';
     lbHasQty = true;
   } else if (p.productosInternos && p.productosInternos.length > 0 && PI.length > 0){
@@ -3113,6 +3118,15 @@ function goSlide(i){
     // Sincroniza la presentación marcada con el slide actual (carrusel → botón),
     // considerando el offset de la imagen principal al inicio.
     document.querySelectorAll('#lbVars .lv').forEach((v,j)=>v.classList.toggle('on',(j+lbPresOffset)===curSlide));
+    // Si la presentación es un desplegable (select), lo sincroniza también:
+    // al deslizar el carrusel, muestra a qué presentación pertenece la foto.
+    // Si el slide es la portada o una foto de galería, vuelve a "Elige una opción".
+    const _sel=document.getElementById('lbSel');
+    if(_sel){
+      const presIdx = curSlide - lbPresOffset;
+      if(presIdx>=0 && presIdx<lbPresList.length){ _sel.value=String(presIdx); }
+      else if(lbSelUsaPlaceholder){ _sel.value=''; }
+    }
   }
 }
 // Rellena el panel inferior con los datos del producto actual de una caja no-esmalte
@@ -3162,6 +3176,7 @@ function lbGetQty(){ const el=document.getElementById('lbQty'); let n=parseInt((
 function lbQtyStep(d){ const el=document.getElementById('lbQty'); if(!el) return; el.value=Math.max(1, lbGetQty()+d); }
 function lbSelChange(){
   const s=document.getElementById('lbSel'); if(!s) return;
+  if(s.value===''){ return; }   // "Elige una opción" → no mueve nada
   const i=parseInt(s.value,10)||0; goSlide(i+lbPresOffset);
   const qi=document.getElementById('lbQty'); if(qi) qi.value='1';   // reiniciar cantidad al cambiar presentación
 }
