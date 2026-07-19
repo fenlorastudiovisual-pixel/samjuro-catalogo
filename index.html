@@ -225,6 +225,17 @@ body{
 }
 .no-res{grid-column:1/-1;text-align:center;padding:40px 20px;font-size:.85rem;color:var(--ink3)}
 
+/* ── Carta de Color por familias (tintura Matizze) ── */
+.pgrid.pgrid-cc{display:block;padding:0 12px}
+.ccf{background:#fff;border:1px solid #efe6f2;border-radius:16px;margin:0 0 14px;overflow:hidden;box-shadow:0 4px 16px rgba(74,29,110,.08)}
+.ccf-h{background:linear-gradient(90deg,#4a1d6e,#6a2b9a);color:#fff;font-weight:700;font-size:.9rem;letter-spacing:.3px;padding:9px 14px}
+.ccf-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:12px 6px;padding:14px 12px}
+.cct{text-align:center;cursor:pointer;border:none;background:none;padding:0;font:inherit;display:block}
+.cct-img{width:100%;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f7f2f7;margin-bottom:5px}
+.cct-img img{width:100%;height:100%;object-fit:contain;display:block}
+.cct-cod{font-size:1rem;font-weight:800;color:#1e1e1e;line-height:1}
+.cct-nom{font-size:.63rem;color:#8a7a90;margin-top:2px;line-height:1.2;min-height:22px}
+
 .pc{
   background:var(--white);border-radius:16px;overflow:hidden;
   border:1px solid var(--hairline);
@@ -2065,8 +2076,86 @@ function makeCard(p){
 
 function renderGrid(arr){
   const g=document.getElementById('productGrid');
+  // Modo Carta de Color por familias (ej. Tintura de Matizze)
+  if(cartaColorAplica(arr)){
+    g.classList.add('pgrid-cc');
+    g.innerHTML = renderCartaColor(arr);
+    return;
+  }
+  g.classList.remove('pgrid-cc');
   g.innerHTML=arr.length ? arr.map(makeCard).join('') : '<div class="no-res">No hay productos.</div>';
 }
+
+// ══════════════════════════════════════════════════════════════════
+// CARTA DE COLOR POR FAMILIAS (tintura Matizze)
+// El mapa código→familia vive en Supabase (tabla tinte_familias, definida
+// con familias_tintura_matizze.sql). Cuando la marca activa es Matizze y la
+// categoría mostrada son tonos que están en ese mapa, en vez de tarjetas
+// sueltas se agrupan por familia como el póster. Al tocar un tono se abre su
+// producto normal (carrito/pedido igual que siempre).
+// ══════════════════════════════════════════════════════════════════
+let FAM_TINTE = {};   // codigo -> { familia, nombre, ordenF, ordenT }
+function ccEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function codigoTinte(nombre){
+  let s=(nombre||'').replace(/tinte/ig,' ').replace(/matizze/ig,' ').replace(/matizante/ig,' ').replace(/\s+/g,' ').trim();
+  const m=s.match(/\d{1,2}\.\d{1,3}/); if(m) return m[0];
+  const w=s.match(/azul|shangai|verde|violeta/i);
+  if(w){ const x=w[0].toLowerCase(); return x.charAt(0).toUpperCase()+x.slice(1); }
+  return s;
+}
+function famDeCard(card){
+  if(!card || card.brand!=='matizze') return null;
+  const cod=codigoTinte(card.name);
+  const info=FAM_TINTE[cod];
+  if(!info) return null;
+  return { familia:info.familia, nombre:info.nombre, codigo:cod, ordenF:info.ordenF, ordenT:info.ordenT };
+}
+function cartaColorAplica(cards){
+  if(!Array.isArray(cards) || cards.length<3) return false;
+  if(activeBrand!=='matizze') return false;
+  if(!FAM_TINTE || !Object.keys(FAM_TINTE).length) return false;
+  const conFam=cards.filter(c=>famDeCard(c)).length;
+  return conFam >= Math.ceil(cards.length*0.6);
+}
+function renderCartaColor(cards){
+  const grupos={};   // familia -> { ordenF, tonos:[] }
+  cards.forEach(c=>{
+    const info=famDeCard(c); if(!info) return;
+    if(!grupos[info.familia]) grupos[info.familia]={ ordenF:info.ordenF, tonos:[] };
+    grupos[info.familia].tonos.push({ card:c, cod:info.codigo, nom:info.nombre, ordenT:info.ordenT });
+  });
+  const fams=Object.keys(grupos).sort((a,b)=>grupos[a].ordenF-grupos[b].ordenF);
+  if(!fams.length) return '<div class="no-res">No hay productos.</div>';
+  let h='';
+  fams.forEach(fam=>{
+    const tonos=grupos[fam].tonos.sort((a,b)=>a.ordenT-b.ordenT);
+    h+='<div class="ccf"><div class="ccf-h">'+ccEsc(fam)+'</div><div class="ccf-g">';
+    h+=tonos.map(t=>{
+      const img=imgRealProd(t.card) || (t.card.imgs&&t.card.imgs[0]) || '';
+      return '<button class="cct" onclick="openLB('+t.card.id+')">'
+        + '<div class="cct-img"><img src="'+ccEsc(img)+'" alt="'+ccEsc(t.nom||'')+'" loading="lazy" onerror="this.style.opacity=0"></div>'
+        + '<div class="cct-cod">'+ccEsc(t.cod)+'</div>'
+        + '<div class="cct-nom">'+ccEsc(t.nom||'')+'</div>'
+        + '</button>';
+    }).join('');
+    h+='</div></div>';
+  });
+  return h;
+}
+async function cargarFamiliasTinte(){
+  try{
+    const { data } = await sb.from('tinte_familias')
+      .select('codigo,nombre_tono,familia,orden_familia,orden_tono,marca_slug')
+      .eq('marca_slug','matizze');
+    if(Array.isArray(data) && data.length){
+      const m={};
+      data.forEach(r=>{ m[String(r.codigo)]={ familia:r.familia, nombre:r.nombre_tono, ordenF:r.orden_familia||0, ordenT:r.orden_tono||0 }; });
+      FAM_TINTE=m;
+      try{ applyFilters(); }catch(e){}   // re-pinta si ya estaba en esa categoría
+    }
+  }catch(e){}
+}
+window.addEventListener('load', cargarFamiliasTinte);
 
 // ── FILTERS ──
 function setF(btn,cat){
