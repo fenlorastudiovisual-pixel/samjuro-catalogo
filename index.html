@@ -229,12 +229,8 @@ body{
 .pgrid.pgrid-cc{display:block;padding:0 12px}
 .ccf{background:#fff;border:1px solid #efe6f2;border-radius:16px;margin:0 0 14px;overflow:hidden;box-shadow:0 4px 16px rgba(74,29,110,.08)}
 .ccf-h{background:linear-gradient(90deg,#4a1d6e,#6a2b9a);color:#fff;font-weight:700;font-size:.9rem;letter-spacing:.3px;padding:9px 14px}
-.ccf-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:12px 6px;padding:14px 12px}
-.cct{text-align:center;cursor:pointer;border:none;background:none;padding:0;font:inherit;display:block}
-.cct-img{width:100%;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#f7f2f7;margin-bottom:5px}
-.cct-img img{width:100%;height:100%;object-fit:contain;display:block}
-.cct-cod{font-size:1rem;font-weight:800;color:#1e1e1e;line-height:1}
-.cct-nom{font-size:.63rem;color:#8a7a90;margin-top:2px;line-height:1.2;min-height:22px}
+/* Adentro de cada banda van las MISMAS tarjetas de siempre (mismo tamaño) */
+.ccf .pgrid{padding:12px 12px 14px;margin:0}
 
 .pc{
   background:var(--white);border-radius:16px;overflow:hidden;
@@ -2129,15 +2125,9 @@ function renderCartaColor(cards){
   let h='';
   fams.forEach(fam=>{
     const tonos=grupos[fam].tonos.sort((a,b)=>a.ordenT-b.ordenT);
-    h+='<div class="ccf"><div class="ccf-h">'+ccEsc(fam)+'</div><div class="ccf-g">';
-    h+=tonos.map(t=>{
-      const img=imgRealProd(t.card) || (t.card.imgs&&t.card.imgs[0]) || '';
-      return '<button class="cct" onclick="openLB('+t.card.id+')">'
-        + '<div class="cct-img"><img src="'+ccEsc(img)+'" alt="'+ccEsc(t.nom||'')+'" loading="lazy" onerror="this.style.opacity=0"></div>'
-        + '<div class="cct-cod">'+ccEsc(t.cod)+'</div>'
-        + '<div class="cct-nom">'+ccEsc(t.nom||'')+'</div>'
-        + '</button>';
-    }).join('');
+    // Cada tono se pinta con la MISMA tarjeta de siempre (makeCard) → igual tamaño
+    h+='<div class="ccf"><div class="ccf-h">'+ccEsc(fam)+'</div><div class="pgrid">';
+    h+=tonos.map(t=>makeCard(t.card)).join('');
     h+='</div></div>';
   });
   return h;
