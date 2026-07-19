@@ -2280,8 +2280,13 @@ function renderCategoryFilters(){
       return a[1].localeCompare(b[1], 'es');
     });
 
-  // Construir HTML: botón "Todos" siempre primero + un botón por categoría
-  let html = `<button class="fp${activeFilter==='todas'?' on':''}" onclick="setF(this,'todas')">Todos</button>`;
+  // SIN botón "Todos": siempre hay una categoría seleccionada (la primera del orden).
+  // Si la categoría activa no aplica a esta marca (o venía en 'todas'), se toma la primera.
+  const slugsCat = categoriasOrdenadas.map(x => x[0]);
+  if (activeFilter === 'todas' || !slugsCat.includes(activeFilter)) {
+    activeFilter = slugsCat.length ? slugsCat[0] : 'todas';
+  }
+  let html = '';
   categoriasOrdenadas.forEach(([slug, nombre]) => {
     const activo = activeFilter === slug ? ' on' : '';
     html += `<button class="fp${activo}" onclick="setF(this,'${slug}')">${nombre}</button>`;
