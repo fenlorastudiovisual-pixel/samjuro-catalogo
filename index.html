@@ -274,6 +274,25 @@ body{
 .pc.wide .pc-img img{object-fit:cover}
 .pc:active .pc-img img{transform:scale(1.06)}
 
+/* ── Sello AGOTADO (fondo transparente, solo recuadro + texto) ── */
+.pc.agotado .pc-img img{filter:grayscale(.45);opacity:.72}
+.pc-agotado{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:4}
+.pc-agotado span{
+  transform:rotate(-13deg);
+  border:.18em solid #d61f1f;color:#d61f1f;
+  font-family:Arial,Helvetica,sans-serif;font-weight:900;
+  font-size:clamp(15px,5.2vw,30px);letter-spacing:.06em;
+  padding:.12em .5em;border-radius:.18em;text-transform:uppercase;
+  background:rgba(255,255,255,.10);
+  box-shadow:0 0 0 .07em rgba(214,31,31,.25) inset;
+  text-shadow:0 1px 2px rgba(255,255,255,.5);
+}
+.prod-counter{
+  display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;
+  background:rgba(0,0,0,.06);color:#8a7d6a;
+  font-family:'Syne',sans-serif;font-size:.62rem;font-weight:700;vertical-align:middle;letter-spacing:.02em;
+}
+
 .pc-tag{
   position:absolute;top:8px;left:8px;
   font-family:'Syne',sans-serif;font-size:.5rem;font-weight:700;
@@ -1356,7 +1375,7 @@ html[data-tema-promos="spa"] #promoLB{
   <!-- FILTERS OVER HERO BOTTOM -->
   <!-- MARCAS -->
   <div class="brand-sec">
-    <div class="brand-sec-t">Nuestras Marcas</div>
+    <div class="brand-sec-t">Nuestras Marcas <span id="prodCounter" class="prod-counter"></span></div>
     <div class="bp-wrap">
       <div class="brand-pills" id="brandPills">
         <!-- Los pills de cada marca se generan dinámicamente desde Supabase -->
@@ -1657,6 +1676,13 @@ window.addEventListener('load', function(){ SJMx.cargarGeo().finally(function(){
 // ══════════════════════════════════════════════════════════════════
 let P = [];   // Tarjetas agrupadas que ve el cliente en el grid
 let PI = [];  // Productos individuales completos (con presentaciones, colores hex, etc.)
+let AGOTADOS = new Set(); // ids (texto) de productos marcados como agotados (tabla productos_agotado)
+function esAgotado(piId){ return AGOTADOS.has(String(piId)); }
+function cardAgotado(card){
+  const ids = Array.isArray(card && card.productosInternos) ? card.productosInternos : [];
+  if(!ids.length) return false;
+  return ids.every(id => AGOTADOS.has(String(id)));   // la caja/tarjeta se marca solo si TODO está agotado
+}
 let MARCAS_META = {}; // Detalles de marca (emoji/eslogan/color/desc) leídos de la tabla marcas, indexados por slug
 let CATEGORIAS_ORDEN = {}; // slug de categoría → número de orden (definido en el admin)
 
@@ -1742,6 +1768,7 @@ function activarRealtime(){
     .on('postgres_changes', { event: '*', schema: 'public', table: 'marcas' }, recargarPronto)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'promociones' }, recargarPronto)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracion' }, recargarPronto)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'productos_agotado' }, recargarPronto)
     .subscribe((estado) => {
       console.log('📡 Realtime:', estado);
     });
@@ -1763,6 +1790,18 @@ async function loadFromSupabase(){
 
     // Guardamos los productos individuales
     PI = data;
+
+    // ── AGOTADOS: leemos la tabla propia (no toca productos ni la vista) ──
+    try{
+      const { data: ago } = await sb.from('productos_agotado').select('producto_id');
+      AGOTADOS = new Set((ago || []).map(x => String(x.producto_id)));
+    }catch(e){ /* si falla, se queda como esté; nada se rompe */ }
+
+    // ── Contador de productos (discreto, "+350 productos") ──
+    try{
+      const el = document.getElementById('prodCounter');
+      if(el){ const base = Math.floor(PI.length/50)*50; el.textContent = base>=50 ? ('+'+base+' productos') : (PI.length+' productos'); }
+    }catch(e){}
 
     // ── OCULTAR MARCAS DESACTIVADAS (ej: Matizze en pausa desde el admin) ──
     // Si una marca tiene visible=false, sus productos NO se muestran en el
@@ -2049,15 +2088,17 @@ function makeCard(p){
   const esEsmaltes = Array.isArray(p.cats) && p.cats.includes('esmaltes');
   const wc = p.wide ? (esEsmaltes ? ' wide' : ' wide wide-noesm') : '';
   const bc=p.brand==='checo'?'checo':'mat';
+  const ago = cardAgotado(p);
   const portada = (p.coleccionPortada && p.coleccionPortada.trim()) ? p.coleccionPortada
     : (p.imgsReales && p.imgsReales.length > 0) ? p.imgsReales[0]
     : p.imgs[0];
-  return `<div class="pc${wc}" onclick="openLB(${p.id})">
+  return `<div class="pc${wc}${ago?' agotado':''}" onclick="openLB(${p.id})">
     <div class="pc-img">
       <img src="${portada}" alt="${p.name}" loading="lazy"
            onerror="this.src='https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600&q=80'">
       <span class="pc-tag ${p.tag}">${p.tagLabel}</span>
       <button class="pc-fav" onclick="fav(event,this,${p.id})">🤍</button>
+      ${ago ? '<div class="pc-agotado"><span>AGOTADO</span></div>' : ''}
     </div>
     <div class="pc-body">
       <div class="pc-brand ${bc}">${p.brandLabel}</div>
@@ -3789,8 +3830,8 @@ function confirmWompiPay(){
             <span class="pwa-s">Abre el catálogo como una app, sin buscar el link</span>
           </span>
         </button>
-        <button class="pwa-install-btn" id="sjOffOpenBtn" type="button" onclick="window.SJOffline&&SJOffline.abrir()" style="margin-top:10px">
-          <span class="pwa-ic">⬇️</span>
+        <button class="pwa-install-btn sjoff-trigger" id="sjOffOpenBtn" type="button" onclick="window.SJOffline&&SJOffline.abrir()" style="margin-top:10px">
+          <span class="pwa-ic">⬇️</span><span class="sjoff-badge" data-sjoff-badge style="display:none"></span>
           <span class="pwa-txt">
             <span class="pwa-t">Usar sin señal</span>
             <span class="pwa-s">Descarga el catálogo con fotos para abrirlo sin internet</span>
@@ -3988,6 +4029,7 @@ function confirmWompiPay(){
 })();
 </script>
 
+
 <!-- ════ USAR SIN SEÑAL (descarga offline con imágenes) ════ -->
 <style>
 #sjOffModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100000;align-items:center;justify-content:center;padding:18px;font-family:inherit}
@@ -4004,6 +4046,7 @@ function confirmWompiPay(){
 #sjOffModal .sjoff-btn{width:100%;border:0;border-radius:13px;background:#111;color:#fff;font-size:15px;font-weight:700;padding:13px;cursor:pointer}
 #sjOffModal .sjoff-btn:disabled{opacity:.55}
 #sjOffModal .sjoff-note{font-size:11.5px;color:#999;margin-top:11px;line-height:1.4}
+.sjoff-badge{display:inline-flex;min-width:16px;height:16px;padding:0 4px;align-items:center;justify-content:center;background:#d61f1f;color:#fff;font-size:10px;font-weight:800;border-radius:9px;margin-left:5px;vertical-align:middle;line-height:1}
 </style>
 <div id="sjOffModal"><div class="sjoff-sheet">
   <button class="sjoff-x" id="sjOffX" type="button">✕</button>
@@ -4148,6 +4191,31 @@ window.__SJOFF_CFG__ = { cacheName:'samjuro-imgs', getData:function(){ try{ retu
     return { done:done, fail:fail, bytes: total };
   }
 
+  // ── Detecta cuántas imágenes NUEVAS faltan por descargar (no están en cache) ──
+  var NUEVOS = null;       // número de imágenes nuevas sin guardar
+  async function revisarNuevos(){
+    try{
+      var urls = collectImgs();
+      if(!urls.length){ NUEVOS = null; actualizarBadges(); return; }
+      var prev = null; try{ prev = JSON.parse(localStorage.getItem(DONE_KEY)||'null'); }catch(e){}
+      if(!prev){ NUEVOS = null; actualizarBadges(); return; }  // nunca ha descargado: no molestamos con "nuevas"
+      var cache = await caches.open(CACHE);
+      var faltan = 0;
+      for(var i=0;i<urls.length;i++){ var hit = await cache.match(urls[i]); if(!hit) faltan++; }
+      NUEVOS = faltan;
+      actualizarBadges();
+    }catch(e){ NUEVOS = null; }
+  }
+  function actualizarBadges(){
+    var els = document.querySelectorAll('[data-sjoff-badge]');
+    for(var i=0;i<els.length;i++){
+      if(NUEVOS && NUEVOS>0){ els[i].textContent = NUEVOS>99?'99+':String(NUEVOS); els[i].style.display=''; }
+      else { els[i].textContent=''; els[i].style.display='none'; }
+    }
+    var trg = document.querySelectorAll('.sjoff-trigger');
+    for(var j=0;j<trg.length;j++){ if(NUEVOS && NUEVOS>0) trg[j].classList.add('has-nuevos'); else trg[j].classList.remove('has-nuevos'); }
+  }
+
   // ────────────────────────── UI ──────────────────────────
   var estado = 'idle';   // idle | medido | bajando | listo
   var urlsCache = [];
@@ -4175,8 +4243,14 @@ window.__SJOFF_CFG__ = { cacheName:'samjuro-imgs', getData:function(){ try{ retu
     estado = 'idle'; verBarra(false); barra(0); stat('');
     pintarNet();
     var prev = null; try{ prev = JSON.parse(localStorage.getItem(DONE_KEY)||'null'); }catch(e){}
-    if(prev && prev.bytes){
-      sub('Ya tienes guardado el catálogo para usar sin señal (<b>'+fmtMB(prev.bytes)+'</b>). Puedes actualizarlo para traer las imágenes nuevas.');
+    if(prev && prev.bytes && NUEVOS && NUEVOS>0){
+      // Ya descargó antes, pero hay imágenes nuevas → descarga directa de lo nuevo.
+      urlsCache = collectImgs();
+      estado = 'medido';
+      sub('Tienes <b>'+NUEVOS+' imágenes nuevas</b> por descargar (productos que agregaste). Guardado hoy: '+fmtMB(prev.bytes)+'.');
+      setBtn('Descargar '+NUEVOS+' nuevas', false);
+    }else if(prev && prev.bytes){
+      sub('Ya tienes guardado el catálogo para usar sin señal (<b>'+fmtMB(prev.bytes)+'</b>). Todo al día. Puedes actualizar por si acaso.');
       setBtn('Actualizar descarga', false);
     }else{
       sub('Guarda todo el catálogo —<b>imágenes incluidas</b>— en tu celular para abrirlo aunque no haya internet.');
@@ -4218,6 +4292,7 @@ window.__SJOFF_CFG__ = { cacheName:'samjuro-imgs', getData:function(){ try{ retu
       sub('¡Listo! Guardé <b>'+res.done+' imágenes</b> ('+fmtMB(res.bytes)+'). Ya puedes abrir la app y ver todo sin señal.');
       setBtn('Actualizar descarga', false);
       estado = 'listo';
+      NUEVOS = 0; actualizarBadges();
     }
   }
 
@@ -4228,9 +4303,10 @@ window.__SJOFF_CFG__ = { cacheName:'samjuro-imgs', getData:function(){ try{ retu
   }
 
   // API pública
-  window.SJOffline = { abrir: abrir, cerrar: cerrar, _collect: collectImgs };
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
-  else wire();
+  window.SJOffline = { abrir: abrir, cerrar: cerrar, _collect: collectImgs, revisarNuevos: revisarNuevos };
+  function wireYRevisar(){ wire(); try{ setTimeout(revisarNuevos, 4000); setTimeout(revisarNuevos, 12000); }catch(e){} }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireYRevisar);
+  else wireYRevisar();
 })();
 
 </script>
