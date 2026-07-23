@@ -3789,6 +3789,13 @@ function confirmWompiPay(){
             <span class="pwa-s">Abre el catálogo como una app, sin buscar el link</span>
           </span>
         </button>
+        <button class="pwa-install-btn" id="sjOffOpenBtn" type="button" onclick="window.SJOffline&&SJOffline.abrir()" style="margin-top:10px">
+          <span class="pwa-ic">⬇️</span>
+          <span class="pwa-txt">
+            <span class="pwa-t">Usar sin señal</span>
+            <span class="pwa-s">Descarga el catálogo con fotos para abrirlo sin internet</span>
+          </span>
+        </button>
       </div>
     </div>
   </div>
@@ -3980,5 +3987,253 @@ function confirmWompiPay(){
   };
 })();
 </script>
+
+<!-- ════ USAR SIN SEÑAL (descarga offline con imágenes) ════ -->
+<style>
+#sjOffModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100000;align-items:center;justify-content:center;padding:18px;font-family:inherit}
+#sjOffModal .sjoff-sheet{background:#fff;border-radius:20px;max-width:400px;width:100%;padding:24px 20px 18px;box-shadow:0 20px 60px rgba(0,0,0,.35);position:relative;text-align:center;box-sizing:border-box}
+#sjOffModal .sjoff-x{position:absolute;top:12px;right:14px;border:0;background:transparent;font-size:20px;color:#999;cursor:pointer;line-height:1}
+#sjOffModal .sjoff-logo{font-size:38px;margin-bottom:2px}
+#sjOffModal .sjoff-title{font-size:19px;font-weight:800;color:#111;margin-bottom:9px}
+#sjOffModal .sjoff-sub{font-size:13.5px;color:#555;line-height:1.5;margin-bottom:14px}
+#sjOffModal .sjoff-bar-wrap{margin:4px 0 12px}
+#sjOffModal .sjoff-bar{height:12px;border-radius:8px;background:#ececec;overflow:hidden}
+#sjOffModal .sjoff-bar-fill{height:100%;width:0;background:linear-gradient(90deg,#111,#555);transition:width .25s}
+#sjOffModal .sjoff-stat{font-size:12.5px;color:#333;margin-top:7px;font-weight:600}
+#sjOffModal .sjoff-net{font-size:12.5px;margin-bottom:12px;line-height:1.4;min-height:16px}
+#sjOffModal .sjoff-btn{width:100%;border:0;border-radius:13px;background:#111;color:#fff;font-size:15px;font-weight:700;padding:13px;cursor:pointer}
+#sjOffModal .sjoff-btn:disabled{opacity:.55}
+#sjOffModal .sjoff-note{font-size:11.5px;color:#999;margin-top:11px;line-height:1.4}
+</style>
+<div id="sjOffModal"><div class="sjoff-sheet">
+  <button class="sjoff-x" id="sjOffX" type="button">✕</button>
+  <div class="sjoff-logo">⬇️</div>
+  <div class="sjoff-title">Usar sin señal</div>
+  <div class="sjoff-sub" id="sjOffSub"></div>
+  <div class="sjoff-bar-wrap" id="sjOffBarWrap" style="display:none">
+    <div class="sjoff-bar"><div class="sjoff-bar-fill" id="sjOffBarFill"></div></div>
+    <div class="sjoff-stat" id="sjOffStat"></div>
+  </div>
+  <div class="sjoff-net" id="sjOffNet"></div>
+  <button class="sjoff-btn" id="sjOffGo" type="button">Calcular peso</button>
+  <div class="sjoff-note" id="sjOffNote">La descarga prioriza WiFi, pero también puedes usar datos. Puedes seguir usando la app mientras descarga.</div>
+</div></div>
+<script>
+window.__SJOFF_CFG__ = { cacheName:'samjuro-imgs', getData:function(){ try{ return (typeof PI!=='undefined' && PI)?PI:[]; }catch(e){ return []; } }, extraUrls:function(){ return []; } };
+</script>
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   SJOffline — "Usar sin señal"
+   Mide el peso real de TODAS las imágenes y las guarda en el celular
+   para que la app funcione sin internet. Prioriza WiFi pero permite datos.
+   Config esperada en window.__SJOFF_CFG__ = {
+     cacheName : 'nombre-del-cache-de-imagenes',  // el MISMO que sirve el sw
+     getData   : function(){ return [ ...productos... ]; },
+     extraUrls : function(){ return [ '...url...' ]; }   // opcional
+   }
+   ══════════════════════════════════════════════════════════════════ */
+(function(){
+  'use strict';
+  var CFG = window.__SJOFF_CFG__ || {};
+  var CACHE = CFG.cacheName || 'sj-imgs';
+  var getData = (typeof CFG.getData === 'function') ? CFG.getData : function(){ return []; };
+  var getExtra = (typeof CFG.extraUrls === 'function') ? CFG.extraUrls : function(){ return []; };
+  var DONE_KEY = 'sj_offline_'+CACHE;
+
+  function $(id){ return document.getElementById(id); }
+  function fmtMB(b){
+    if(!b || b<0) b=0;
+    var mb = b/1048576;
+    if(mb < 10) return mb.toFixed(1)+' MB';
+    return Math.round(mb)+' MB';
+  }
+
+  // ── Junta TODAS las URLs de imágenes que haya en los datos, sin importar
+  //    el nombre del campo (recorre productos y presentaciones a fondo). ──
+  function collectImgs(){
+    var out = {}, seen = [];
+    var rx = /^https?:\/\/[^\s"'<>]+\.(jpe?g|png|webp|gif|avif)(\?[^\s"'<>]*)?$/i;
+    function walk(v){
+      if(v == null) return;
+      if(typeof v === 'string'){ if(rx.test(v)) out[v] = 1; return; }
+      if(typeof v !== 'object') return;
+      if(seen.indexOf(v) !== -1) return; seen.push(v);
+      if(Array.isArray(v)){ for(var i=0;i<v.length;i++) walk(v[i]); return; }
+      for(var k in v){ if(Object.prototype.hasOwnProperty.call(v,k)){ try{ walk(v[k]); }catch(e){} } }
+    }
+    try{ walk(getData()); }catch(e){}
+    try{
+      var ex = getExtra();
+      if(Array.isArray(ex)) for(var j=0;j<ex.length;j++){ if(rx.test(String(ex[j]||''))) out[ex[j]] = 1; }
+    }catch(e){}
+    return Object.keys(out);
+  }
+
+  // ── Detecta el tipo de conexión (para priorizar WiFi, pero permitir datos) ──
+  function conexion(){
+    var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection || null;
+    if(!c) return { conocida:false, wifi:null, celular:null, ahorro:false, etiqueta:'' };
+    var t = (c.type || '').toLowerCase();
+    var wifi = (t === 'wifi' || t === 'ethernet');
+    var cel  = (t === 'cellular');
+    return { conocida: !!t, wifi:wifi, celular:cel, ahorro:!!c.saveData, etiqueta: t || (c.effectiveType||'') };
+  }
+
+  async function usoActual(){
+    try{ if(navigator.storage && navigator.storage.estimate){ var e = await navigator.storage.estimate(); return e.usage || 0; } }catch(e){}
+    return 0;
+  }
+
+  // ── Mide una muestra real de imágenes para estimar el peso total ──
+  async function medir(urls){
+    var n = urls.length;
+    if(n === 0) return { count:0, est:0, avg:null };
+    var step = Math.max(1, Math.floor(n/28));
+    var sample = [];
+    for(var i=0; i<n && sample.length<28; i+=step) sample.push(urls[i]);
+    var bytes = 0, ok = 0;
+    await Promise.all(sample.map(async function(u){
+      try{
+        var ctl = new AbortController();
+        var to = setTimeout(function(){ ctl.abort(); }, 9000);
+        var r = await fetch(u, { mode:'cors', cache:'no-store', signal:ctl.signal });
+        clearTimeout(to);
+        if(r.ok){ var b = await r.blob(); if(b.size > 0){ bytes += b.size; ok++; } }
+      }catch(e){}
+    }));
+    if(ok >= 3){ var avg = bytes/ok; return { count:n, est: Math.round(avg*n), avg:avg }; }
+    // Si el CDN no deja leer el tamaño (CORS), usamos un promedio prudente.
+    return { count:n, est: n*210*1024, avg:null };
+  }
+
+  // ── Descarga y guarda TODAS las imágenes en el cache que sirve el sw ──
+  async function descargar(urls, onProgress){
+    var cache = await caches.open(CACHE);
+    var base = await usoActual();
+    var i = 0, done = 0, fail = 0, sumBytes = 0, estBytes = 0, deltaBytes = 0;
+    var CONC = 6;
+    async function worker(){
+      while(i < urls.length){
+        var u = urls[i++];
+        try{
+          var hit = await cache.match(u);
+          if(hit){
+            // ya estaba guardada: cuenta su tamaño si se puede leer
+            try{ var hb = await hit.clone().blob(); if(hb.size>0) sumBytes += hb.size; }catch(e){}
+          }else{
+            var res = null;
+            try{ res = await fetch(u, { mode:'cors', cache:'reload' }); }
+            catch(e1){ try{ res = await fetch(u, { mode:'no-cors', cache:'reload' }); }catch(e2){ res = null; } }
+            if(res && (res.ok || res.type === 'opaque')){
+              await cache.put(u, res.clone());
+              // suma el tamaño real cuando la respuesta es legible (CORS)
+              if(res.type !== 'opaque'){ try{ var b = await res.blob(); if(b.size>0) sumBytes += b.size; }catch(e){} }
+              else { estBytes += 210*1024; }   // opaca: no se puede leer, se estima
+            }
+          }
+        }catch(e){ fail++; }
+        done++;
+        if(done % 6 === 0 || done === urls.length){ var uso = await usoActual(); deltaBytes = Math.max(0, uso - base); }
+        // Mejor número disponible: bytes reales sumados (+estimado de opacas), o el delta de almacenamiento.
+        var shown = Math.max(sumBytes + estBytes, deltaBytes);
+        try{ onProgress(done, urls.length, shown, fail); }catch(e){}
+      }
+    }
+    var pool = [];
+    for(var w=0; w<CONC; w++) pool.push(worker());
+    await Promise.all(pool);
+    var usoFin = await usoActual();
+    deltaBytes = Math.max(0, usoFin - base);
+    var total = Math.max(sumBytes + estBytes, deltaBytes);
+    return { done:done, fail:fail, bytes: total };
+  }
+
+  // ────────────────────────── UI ──────────────────────────
+  var estado = 'idle';   // idle | medido | bajando | listo
+  var urlsCache = [];
+  var pesoEst = 0;
+
+  function setBtn(txt, dis){
+    var b = $('sjOffGo'); if(!b) return;
+    b.textContent = txt; b.disabled = !!dis;
+  }
+  function pintarNet(){
+    var el = $('sjOffNet'); if(!el) return;
+    var c = conexion();
+    if(c.wifi){ el.innerHTML = '📶 Estás en <b>WiFi</b> — momento ideal para descargar.'; el.style.color = '#0a7d33'; }
+    else if(c.celular){ el.innerHTML = '📱 Estás usando <b>datos móviles</b>. Puedes descargar, pero si puedes conéctate a WiFi.'; el.style.color = '#b26a00'; }
+    else { el.innerHTML = '💡 Para que pese menos en tu plan, descarga con WiFi si puedes.'; el.style.color = '#666'; }
+  }
+  function verBarra(v){ var w = $('sjOffBarWrap'); if(w) w.style.display = v ? 'block' : 'none'; }
+  function barra(p){ var f = $('sjOffBarFill'); if(f) f.style.width = Math.max(0,Math.min(100,p))+'%'; }
+  function stat(t){ var s = $('sjOffStat'); if(s) s.textContent = t; }
+  function sub(t){ var s = $('sjOffSub'); if(s) s.innerHTML = t; }
+
+  function abrir(){
+    var m = $('sjOffModal'); if(!m) return;
+    m.style.display = 'flex';
+    estado = 'idle'; verBarra(false); barra(0); stat('');
+    pintarNet();
+    var prev = null; try{ prev = JSON.parse(localStorage.getItem(DONE_KEY)||'null'); }catch(e){}
+    if(prev && prev.bytes){
+      sub('Ya tienes guardado el catálogo para usar sin señal (<b>'+fmtMB(prev.bytes)+'</b>). Puedes actualizarlo para traer las imágenes nuevas.');
+      setBtn('Actualizar descarga', false);
+    }else{
+      sub('Guarda todo el catálogo —<b>imágenes incluidas</b>— en tu celular para abrirlo aunque no haya internet.');
+      setBtn('Calcular peso', false);
+    }
+  }
+  function cerrar(){ var m = $('sjOffModal'); if(m) m.style.display = 'none'; }
+
+  async function onGo(){
+    if(estado === 'bajando') return;
+    if(estado === 'idle'){
+      setBtn('Calculando…', true);
+      urlsCache = collectImgs();
+      if(urlsCache.length === 0){
+        sub('No encontré imágenes para guardar todavía. Abre el catálogo con internet una vez y vuelve a intentar.');
+        setBtn('Reintentar', false); return;
+      }
+      var r = await medir(urlsCache);
+      pesoEst = r.est;
+      var aprox = r.avg ? 'pesa aproximadamente' : 'pesará alrededor de';
+      sub('El catálogo tiene <b>'+r.count+' imágenes</b> y '+aprox+' <b>'+fmtMB(pesoEst)+'</b>.<br>Al tocar Descargar se guardan todas en tu celular.');
+      pintarNet();
+      setBtn('Descargar todo ('+fmtMB(pesoEst)+')', false);
+      estado = 'medido';
+      return;
+    }
+    if(estado === 'medido' || estado === 'listo'){
+      estado = 'bajando';
+      setBtn('Descargando…', true);
+      verBarra(true); barra(0); stat('Preparando…');
+      var res = await descargar(urlsCache, function(done, total, bytes, fail){
+        barra(total ? (done/total*100) : 0);
+        stat(done+' / '+total+' imágenes · '+fmtMB(bytes)+' guardados');
+      });
+      try{ localStorage.setItem(DONE_KEY, JSON.stringify({ bytes:res.bytes, count:res.done, at:Date.now() })); }catch(e){}
+      barra(100);
+      var extra = res.fail ? (' ('+res.fail+' no se pudieron guardar, se intentarán al verlas)') : '';
+      stat('✅ Guardado '+fmtMB(res.bytes)+extra);
+      sub('¡Listo! Guardé <b>'+res.done+' imágenes</b> ('+fmtMB(res.bytes)+'). Ya puedes abrir la app y ver todo sin señal.');
+      setBtn('Actualizar descarga', false);
+      estado = 'listo';
+    }
+  }
+
+  function wire(){
+    var go = $('sjOffGo'); if(go) go.addEventListener('click', onGo);
+    var x = $('sjOffX'); if(x) x.addEventListener('click', cerrar);
+    var m = $('sjOffModal'); if(m) m.addEventListener('click', function(e){ if(e.target === m) cerrar(); });
+  }
+
+  // API pública
+  window.SJOffline = { abrir: abrir, cerrar: cerrar, _collect: collectImgs };
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
+  else wire();
+})();
+
+</script>
+
 </body>
 </html>
