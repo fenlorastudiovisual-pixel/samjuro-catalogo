@@ -4030,6 +4030,7 @@ function confirmWompiPay(){
 </script>
 
 
+
 <!-- ════ USAR SIN SEÑAL (descarga offline con imágenes) ════ -->
 <style>
 #sjOffModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100000;align-items:center;justify-content:center;padding:18px;font-family:inherit}
@@ -4046,6 +4047,10 @@ function confirmWompiPay(){
 #sjOffModal .sjoff-btn{width:100%;border:0;border-radius:13px;background:#111;color:#fff;font-size:15px;font-weight:700;padding:13px;cursor:pointer}
 #sjOffModal .sjoff-btn:disabled{opacity:.55}
 #sjOffModal .sjoff-note{font-size:11.5px;color:#999;margin-top:11px;line-height:1.4}
+.sjoff-banner{position:fixed;left:12px;right:12px;bottom:14px;z-index:99999;display:none;align-items:center;gap:10px;background:#111;color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.35);font-family:inherit;max-width:520px;margin:0 auto}
+.sjoff-banner-txt{flex:1;font-size:13px;line-height:1.35;min-width:0}
+.sjoff-banner-go{border:0;background:#fff;color:#111;font-weight:800;font-size:13px;border-radius:10px;padding:9px 14px;cursor:pointer;flex:none}
+.sjoff-banner-x{border:0;background:transparent;color:#bbb;font-size:16px;cursor:pointer;flex:none;padding:2px 4px;line-height:1}
 .sjoff-badge{display:inline-flex;min-width:16px;height:16px;padding:0 4px;align-items:center;justify-content:center;background:#d61f1f;color:#fff;font-size:10px;font-weight:800;border-radius:9px;margin-left:5px;vertical-align:middle;line-height:1}
 </style>
 <div id="sjOffModal"><div class="sjoff-sheet">
@@ -4061,6 +4066,11 @@ function confirmWompiPay(){
   <button class="sjoff-btn" id="sjOffGo" type="button">Calcular peso</button>
   <div class="sjoff-note" id="sjOffNote">La descarga prioriza WiFi, pero también puedes usar datos. Puedes seguir usando la app mientras descarga.</div>
 </div></div>
+<div id="sjOffBanner" class="sjoff-banner">
+  <span class="sjoff-banner-txt" id="sjOffBannerTxt"></span>
+  <button class="sjoff-banner-go" id="sjOffBannerGo" type="button">Descargar</button>
+  <button class="sjoff-banner-x" id="sjOffBannerX" type="button">✕</button>
+</div>
 <script>
 window.__SJOFF_CFG__ = { cacheName:'samjuro-imgs', getData:function(){ try{ return (typeof PI!=='undefined' && PI)?PI:[]; }catch(e){ return []; } }, extraUrls:function(){ return []; } };
 </script>
@@ -4214,6 +4224,19 @@ window.__SJOFF_CFG__ = { cacheName:'samjuro-imgs', getData:function(){ try{ retu
     }
     var trg = document.querySelectorAll('.sjoff-trigger');
     for(var j=0;j<trg.length;j++){ if(NUEVOS && NUEVOS>0) trg[j].classList.add('has-nuevos'); else trg[j].classList.remove('has-nuevos'); }
+    mostrarBanner();
+  }
+  var bannerCerrado = false;
+  function mostrarBanner(){
+    var el = $('sjOffBanner'); if(!el) return;
+    var online = (navigator.onLine !== false);
+    if(NUEVOS && NUEVOS>0 && !bannerCerrado && online){
+      var t = $('sjOffBannerTxt');
+      if(t) t.innerHTML = '🆕 Hay <b>'+NUEVOS+'</b> imagen'+(NUEVOS===1?'':'es')+' nueva'+(NUEVOS===1?'':'s')+' para tenerlas sin señal';
+      el.style.display = 'flex';
+    }else{
+      el.style.display = 'none';
+    }
   }
 
   // ────────────────────────── UI ──────────────────────────
@@ -4300,6 +4323,8 @@ window.__SJOFF_CFG__ = { cacheName:'samjuro-imgs', getData:function(){ try{ retu
     var go = $('sjOffGo'); if(go) go.addEventListener('click', onGo);
     var x = $('sjOffX'); if(x) x.addEventListener('click', cerrar);
     var m = $('sjOffModal'); if(m) m.addEventListener('click', function(e){ if(e.target === m) cerrar(); });
+    var bg = $('sjOffBannerGo'); if(bg) bg.addEventListener('click', function(){ bannerCerrado = true; var el=$('sjOffBanner'); if(el) el.style.display='none'; abrir(); });
+    var bx = $('sjOffBannerX'); if(bx) bx.addEventListener('click', function(){ bannerCerrado = true; var el=$('sjOffBanner'); if(el) el.style.display='none'; });
   }
 
   // API pública
