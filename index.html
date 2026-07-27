@@ -411,6 +411,17 @@ body{
   display:flex;align-items:center;justify-content:center;
 }
 .lb-x-float:active{transform:scale(.9)}
+/* Lupa de ZOOM (solo aparece en productos marcados con zoom en el admin) */
+.lb-zoom-btn{
+  position:absolute;bottom:12px;right:12px;z-index:25;
+  width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
+  background:rgba(30,22,18,.62);backdrop-filter:blur(6px);
+  color:#fff;font-size:20px;line-height:1;
+  box-shadow:0 4px 16px rgba(0,0,0,.35);transition:.15s;
+  display:none;align-items:center;justify-content:center;
+}
+.lb-zoom-btn:active{transform:scale(.9)}
+#lb.lb-zoom .lb-zoom-btn{display:flex}
 
 /* ===== LIGHTBOX FLOTANTE · CARTA DE COLOR ===== */
 #cartaLB{
@@ -1450,6 +1461,7 @@ html[data-tema-promos="spa"] #promoLB{
       <div class="lb-slides" id="lbSlides"></div>
       <button class="lb-arr prev" onclick="slide(-1)">‹</button>
       <button class="lb-arr next" onclick="slide(1)">›</button>
+      <button class="lb-zoom-btn" id="lbZoomBtn" onclick="lbZoomActual(event)" aria-label="Ampliar imagen"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg></button>
     </div>
     <div class="lb-dots" id="lbDots"></div>
     <div class="lb-body">
@@ -1677,6 +1689,8 @@ window.addEventListener('load', function(){ SJMx.cargarGeo().finally(function(){
 let P = [];   // Tarjetas agrupadas que ve el cliente en el grid
 let PI = [];  // Productos individuales completos (con presentaciones, colores hex, etc.)
 let AGOTADOS = new Set(); // ids (texto) de productos marcados como agotados (tabla productos_agotado)
+let ZOOM = new Set();     // ids (texto) de productos con zoom activado (tabla productos_zoom)
+function tieneZoom(piId){ return ZOOM.has(String(piId)); }
 function esAgotado(piId){ return AGOTADOS.has(String(piId)); }
 function cardAgotado(card){
   const ids = Array.isArray(card && card.productosInternos) ? card.productosInternos : [];
@@ -1769,6 +1783,7 @@ function activarRealtime(){
     .on('postgres_changes', { event: '*', schema: 'public', table: 'promociones' }, recargarPronto)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracion' }, recargarPronto)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'productos_agotado' }, recargarPronto)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'productos_zoom' }, recargarPronto)
     .subscribe((estado) => {
       console.log('📡 Realtime:', estado);
     });
@@ -1795,6 +1810,12 @@ async function loadFromSupabase(){
     try{
       const { data: ago } = await sb.from('productos_agotado').select('producto_id');
       AGOTADOS = new Set((ago || []).map(x => String(x.producto_id)));
+    }catch(e){ /* si falla, se queda como esté; nada se rompe */ }
+
+    // ── ZOOM: productos donde el admin activó ampliar imagen (tabla propia) ──
+    try{
+      const { data: zm } = await sb.from('productos_zoom').select('producto_id');
+      ZOOM = new Set((zm || []).map(x => String(x.producto_id)));
     }catch(e){ /* si falla, se queda como esté; nada se rompe */ }
 
     // ── Contador de productos (discreto, "+350 productos") ──
@@ -2563,6 +2584,12 @@ function openLB(idx){
   lbHasQty=false; lbPresList=[]; lbTonoGrid=false; lbSelUsaPlaceholder=false;
   lbFav = favItems.some(f=>f.id===idx);
   document.getElementById('lb').classList.remove('lb-no-img');
+  // Lupa de zoom: aparece solo si el admin marcó este producto (o algún producto interno de la caja)
+  (function(){
+    const ids = (p.productosInternos && p.productosInternos.length) ? p.productosInternos.map(String) : [String(p.id)];
+    const conZoom = ZOOM.has(String(p.id)) || ids.some(id => ZOOM.has(id));
+    document.getElementById('lb').classList.toggle('lb-zoom', conZoom);
+  })();
 
   // ── Detectar producto INDIVIDUAL con varias presentaciones ──
   // (una sola tarjeta = un producto, con presentaciones tipo tamaños 60ml/250ml…)
@@ -3034,11 +3061,24 @@ let tzScale=1, tzX=0, tzY=0, tzDrag=false, tzSX=0, tzSY=0;
 function tonoZoomOpen(){
   const src = document.getElementById('ctoneImg').src;
   if(!src) return;
+  zoomImagen(src);
+}
+// Abre el visor de zoom (pinch/arrastrar/doble tap) con cualquier imagen.
+function zoomImagen(src){
+  if(!src) return;
   const z = document.getElementById('tonoZoom');
   const im = document.getElementById('tonoZoomImg');
   im.src = src;
   tzScale=1; tzX=0; tzY=0; tzApply();
   z.classList.add('open');
+}
+// Lupa del lightbox de producto: amplía la imagen que se está viendo (slide actual).
+function lbZoomActual(ev){
+  if(ev){ ev.stopPropagation(); }
+  const imgs = document.querySelectorAll('#lbSlides .lb-slide img');
+  let el = imgs[curSlide] || imgs[0];
+  const src = el ? el.src : '';
+  zoomImagen(src);
 }
 function tzApply(){
   const im = document.getElementById('tonoZoomImg');
@@ -3055,9 +3095,20 @@ function tonoZoomBg(e){ if(e.target.id==='tonoZoom') tonoZoomClose(); }
   im.addEventListener('mousedown',e=>{e.preventDefault();start(e.clientX,e.clientY);});
   window.addEventListener('mousemove',e=>move(e.clientX,e.clientY));
   window.addEventListener('mouseup',end);
-  im.addEventListener('touchstart',e=>{const t=e.touches[0];start(t.clientX,t.clientY);},{passive:true});
-  im.addEventListener('touchmove',e=>{const t=e.touches[0];move(t.clientX,t.clientY);},{passive:true});
-  im.addEventListener('touchend',end);
+  // ── Pinch (2 dedos) para acercar/alejar, y 1 dedo para arrastrar ──
+  let pinch=false, pinchD0=0, pinchS0=1;
+  const dist=(a,b)=>Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+  im.addEventListener('touchstart',e=>{
+    if(e.touches.length>=2){ pinch=true; tzDrag=false; pinchD0=dist(e.touches[0],e.touches[1]); pinchS0=tzScale; }
+    else { pinch=false; const t=e.touches[0]; start(t.clientX,t.clientY); }
+  },{passive:true});
+  im.addEventListener('touchmove',e=>{
+    if(pinch && e.touches.length>=2){
+      const d=dist(e.touches[0],e.touches[1]);
+      if(pinchD0>0){ tzScale = Math.min(5, Math.max(1, pinchS0 * (d/pinchD0))); if(tzScale===1){tzX=0;tzY=0;} tzApply(); }
+    } else if(!pinch){ const t=e.touches[0]; move(t.clientX,t.clientY); }
+  },{passive:true});
+  im.addEventListener('touchend',e=>{ if(e.touches.length===0){ pinch=false; } end(); });
   im.addEventListener('click',e=>e.stopPropagation());
   im.addEventListener('dblclick',e=>{ e.stopPropagation(); tzScale = (tzScale>1?1:2.2); if(tzScale===1){tzX=0;tzY=0;} tzApply(); });
 })();
