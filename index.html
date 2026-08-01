@@ -1661,6 +1661,8 @@ const SJMx = (function(){
     return geo;
   }
   async function track(tipo, extra){
+    // Dispositivo del EQUIPO (tú o una vendedora): NO se cuenta en las métricas.
+    try{ if(localStorage.getItem('sj_equipo')==='1') return; }catch(e){}
     try{
       const g = geo || await cargarGeo();
       const row = Object.assign({
@@ -1677,6 +1679,24 @@ const SJMx = (function(){
   return { track:track, cargarGeo:cargarGeo };
 })();
 function trackEvento(tipo, extra){ try{ SJMx.track(tipo, extra); }catch(e){} }
+// ── Excluir SOLO MIS dispositivos (pruebas/correcciones) de las métricas ──
+// Abrir el catálogo UNA vez con  ?equipo=1  marca ESTE dispositivo y deja de contar sus visitas
+// para siempre. Con  ?equipo=0  vuelve a contar. (Se guarda en el dispositivo, es un enlace privado;
+// no hay nada visible en el catálogo. Las vendedoras NO lo usan, así siguen contando con su ubicación.)
+(function(){
+  try{
+    const q = new URLSearchParams(location.search || '');
+    if(q.has('equipo')){
+      if(q.get('equipo')==='0'){
+        localStorage.removeItem('sj_equipo');
+        setTimeout(function(){ alert('✅ Este dispositivo VUELVE a contar en las métricas.'); }, 300);
+      } else {
+        localStorage.setItem('sj_equipo','1');
+        setTimeout(function(){ alert('✅ Listo. Este dispositivo es del EQUIPO: sus visitas ya NO se cuentan en las métricas.'); }, 300);
+      }
+    }
+  }catch(e){}
+})();
 // Al cargar: primero ubicación aproximada, luego la visita (así la visita ya trae ciudad)
 window.addEventListener('load', function(){ SJMx.cargarGeo().finally(function(){ trackEvento('pageview'); }); });
 
