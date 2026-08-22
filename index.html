@@ -3030,8 +3030,10 @@ function openLB(idx){
   document.getElementById('lbFavB').textContent=lbFav?'❤️':'🤍';
   const cb=document.getElementById('lbCartB');
   cb.innerHTML='🛒 Agregar al pedido';cb.classList.remove('ok');
+  cb.disabled=false; cb.style.opacity=''; cb.style.cursor='';
   const qw=document.getElementById('lbQtyWrap'); if(qw){ qw.style.display = lbHasQty ? 'block' : 'none'; }
   const qi=document.getElementById('lbQty'); if(qi) qi.value='1';
+  try{ lbSyncAgotado(); }catch(e){}   // bloquea si la presentación por defecto está agotada
   // En la cuadrícula de tonos no va el botón general (se usa Pedido rápido o se entra al tono)
   const actsEl = document.querySelector('#lb .lb-acts');
   if(actsEl) actsEl.style.display = lbTonoGrid ? 'none' : '';
@@ -3641,9 +3643,33 @@ function lbGetQty(){ const el=document.getElementById('lbQty'); let n=parseInt((
 function lbQtyStep(d){ const el=document.getElementById('lbQty'); if(!el) return; el.value=Math.max(1, lbGetQty()+d); }
 function lbSelChange(){
   const s=document.getElementById('lbSel'); if(!s) return;
-  if(s.value===''){ return; }   // "Elige una opción" → no mueve nada
-  const i=parseInt(s.value,10)||0; goSlide(i+lbPresOffset);
-  const qi=document.getElementById('lbQty'); if(qi) qi.value='1';   // reiniciar cantidad al cambiar presentación
+  if(s.value!==''){
+    const i=parseInt(s.value,10)||0; goSlide(i+lbPresOffset);
+    const qi=document.getElementById('lbQty'); if(qi) qi.value='1';   // reiniciar cantidad al cambiar presentación
+  }
+  lbSyncAgotado();
+}
+// Bloquea cantidad y "Agregar al pedido" cuando la presentación elegida está
+// AGOTADA (o no se ha elegido). Así una presentación agotada no puede entrar
+// al pedido ni colarse en el WhatsApp.
+function lbSyncAgotado(){
+  const cb=document.getElementById('lbCartB'); if(!cb) return;
+  const s=document.getElementById('lbSel');
+  const qwrap=document.getElementById('lbQtyWrap');
+  const qi=document.getElementById('lbQty');
+  const qbtns=document.querySelectorAll('#lbQtyWrap .lb-qbtn');
+  let bloquear=false, txt='🛒 Agregar al pedido';
+  if(lbHasQty && lbPresList && lbPresList.length && s){
+    if(s.value===''){ bloquear=true; txt='Elige una opción'; }
+    else { const info=lbPresList[parseInt(s.value,10)||0]; if(info && info.agotada){ bloquear=true; txt='Agotado'; } }
+  }
+  if(qi) qi.disabled=bloquear;
+  qbtns.forEach(b=>{ b.disabled=bloquear; b.style.opacity=bloquear?'.4':''; });
+  if(qwrap) qwrap.style.opacity=bloquear?'.5':'';
+  cb.disabled=bloquear;
+  cb.style.opacity=bloquear?'.55':'';
+  cb.style.cursor=bloquear?'not-allowed':'';
+  if(!cb.classList.contains('ok')) cb.innerHTML=txt;
 }
 function lbAddCart(){
   const b=document.getElementById('lbCartB');
