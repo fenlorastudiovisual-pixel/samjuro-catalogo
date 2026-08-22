@@ -2446,6 +2446,10 @@ function renderSplashBrands(){
   let nombres=[];
   try{
     nombres = obtenerMarcasConProductos()
+      // Solo las marcas marcadas para el intro. Se oculta una marca cuando su
+      // campo 'mostrar_en_intro' es false (ej. "Semi y accesorios", que no es
+      // una marca real). Si el campo no existe o es true, la marca sí aparece.
+      .filter(m => { const meta=MARCAS_META[m.slug]||{}; return meta.mostrar_en_intro !== false; })
       .map(m => (MARCAS_META[m.slug] && MARCAS_META[m.slug].nombre) || m.nombre)
       .filter(Boolean);
   }catch(e){}
