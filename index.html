@@ -229,6 +229,9 @@ body{
 .pgrid.pgrid-cc{display:block;padding:0 12px}
 .ccf{background:#fff;border:1px solid #efe6f2;border-radius:16px;margin:0 0 14px;overflow:hidden;box-shadow:0 4px 16px rgba(74,29,110,.08)}
 .ccf-h{background:linear-gradient(90deg,#4a1d6e,#6a2b9a);color:#fff;font-weight:700;font-size:.9rem;letter-spacing:.3px;padding:9px 14px}
+/* Variante VERDE (ej. Sin amoniaco de Matizze) — misma barra, color verde */
+.ccf.ccf--verde{border-color:#e2efe1;box-shadow:0 4px 16px rgba(29,110,52,.08)}
+.ccf.ccf--verde .ccf-h{background:linear-gradient(90deg,#2e7d32,#43a047)}
 /* Adentro de cada banda van las MISMAS tarjetas de siempre (mismo tamaño) */
 .ccf .pgrid{padding:12px 12px 14px;margin:0}
 /* Cuadrícula de tonos (chips) DENTRO de una colección agrupada por familia */
@@ -2129,15 +2132,10 @@ window.addEventListener('load',()=>{
 
 // ── RENDER ──
 function makeCard(p){
-  // Una caja es "wide". Si esa caja NO pertenece a la categoría Esmaltes,
-  // le añadimos 'wide-noesm' para poder mostrarla angosta SOLO en móvil
-  // (en Esmaltes se respetan los nodales: siguen anchos).
-  const esEsmaltes = Array.isArray(p.cats) && p.cats.includes('esmaltes');
-  // Las cajas de colección CON portada se ven grandes (como las de Esmaltes),
-  // aunque no sean de la categoría Esmaltes (ej. Tintura o Sin amoniaco de Matizze).
-  const esCajaConPortada = !!(p.coleccionPortada && String(p.coleccionPortada).trim());
-  const grande = esEsmaltes || esCajaConPortada;
-  const wc = p.wide ? (grande ? ' wide' : ' wide wide-noesm') : '';
+  // TODAS las cajas de colección (2+ productos) se muestran GRANDES, igual que
+  // las de Esmaltes — no solo esmaltes. Aplica a Tintura, Sin amoniaco, etc.
+  // Antes, las colecciones que no eran de Esmaltes salían angostas ('wide-noesm').
+  const wc = p.wide ? ' wide' : '';
   const bc=p.brand==='checo'?'checo':'mat';
   const ago = cardAgotado(p);
   const portada = (p.coleccionPortada && p.coleccionPortada.trim()) ? p.coleccionPortada
@@ -2186,31 +2184,48 @@ let FAM_TINTE = {};   // codigo -> { familia, nombre, ordenF, ordenT }
 function ccEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function codigoTinte(nombre){
   let s=(nombre||'').replace(/tinte/ig,' ').replace(/matizze/ig,' ').replace(/matizante/ig,' ').replace(/\s+/g,' ').trim();
-  const m=s.match(/\d{1,2}\.\d{1,3}/); if(m) return m[0];
+  // Códigos con decimal (1.0, 6.31, 5.32…). Acepta coma o punto y lo normaliza a punto.
+  const m=s.match(/\d{1,2}[.,]\d{1,3}/); if(m) return m[0].replace(',', '.');
+  // Códigos enteros de 3-4 dígitos (ej. 901, 902, 903 de "sin amoniaco Rubios").
+  const m3=s.match(/\b\d{3,4}\b/); if(m3) return m3[0];
   const w=s.match(/azul|shangai|verde|violeta/i);
   if(w){ const x=w[0].toLowerCase(); return x.charAt(0).toUpperCase()+x.slice(1); }
   return s;
 }
+// Busca la familia de un tono. FAM_TINTE está organizado por CATEGORÍA
+// (tintura, sin-amoniaco, …) para que códigos iguales en categorías distintas
+// no se mezclen. Primero mira la categoría del tono; si no, cae a '__any__'
+// (filas antiguas sin categoría, ej. la tintura original).
+function famLookup(catSlug, nombre){
+  if(!FAM_TINTE || !Object.keys(FAM_TINTE).length) return null;
+  const cod=codigoTinte(nombre);
+  const cat=(catSlug||'').toString().toLowerCase().trim();
+  const enCat = (cat && FAM_TINTE[cat]) ? FAM_TINTE[cat][cod] : null;
+  return enCat || (FAM_TINTE['__any__'] ? FAM_TINTE['__any__'][cod] : null);
+}
 function famDeCard(card){
   if(!card || card.brand!=='matizze') return null;
-  const cod=codigoTinte(card.name);
-  const info=FAM_TINTE[cod];
+  const info=famLookup(card.categoria_slug, card.name);
   if(!info) return null;
-  return { familia:info.familia, nombre:info.nombre, codigo:cod, ordenF:info.ordenF, ordenT:info.ordenT };
+  return { familia:info.familia, nombre:info.nombre, codigo:codigoTinte(card.name), ordenF:info.ordenF, ordenT:info.ordenT };
 }
 // Igual que famDeCard, pero para un PRODUCTO INDIVIDUAL (tono) dentro de una
-// colección. Sirve para agrupar los tonos de una colección de tintura Matizze
-// bajo sus barras de familia. Devuelve null si el tono no es de Matizze o no
-// está mapeado en tinte_familias (así CHECO y demás quedan intactas).
+// colección. Sirve para agrupar los tonos de una colección de Matizze (tintura
+// o sin amoniaco) bajo sus barras de familia. Devuelve null si el tono no es de
+// Matizze o no está mapeado en tinte_familias (así CHECO y demás quedan intactas).
 function famDePI(pi){
   if(!pi) return null;
   const slug=(pi.marca_slug||'').toLowerCase();
   if(slug && slug!=='matizze') return null;
-  if(!FAM_TINTE || !Object.keys(FAM_TINTE).length) return null;
-  const cod=codigoTinte(pi.nombre);
-  const info=FAM_TINTE[cod];
+  const info=famLookup(pi.categoria_slug, pi.nombre);
   if(!info) return null;
-  return { familia:info.familia, codigo:cod, ordenF:info.ordenF, ordenT:info.ordenT };
+  return { familia:info.familia, codigo:codigoTinte(pi.nombre), ordenF:info.ordenF, ordenT:info.ordenT };
+}
+// Color de la barra de familia según la categoría: sin amoniaco = VERDE,
+// tintura (y por defecto) = MORADO. Robusto al slug exacto (busca "amoniaco").
+function barClassDeCategoria(catSlug){
+  const c=(catSlug||'').toString().toLowerCase();
+  return (c.indexOf('amoniaco')>=0 || c.indexOf('amoníaco')>=0) ? 'ccf--verde' : '';
 }
 function cartaColorAplica(cards){
   if(!Array.isArray(cards) || cards.length<3) return false;
@@ -2235,26 +2250,90 @@ function renderCartaColor(cards){
   });
   const fams=Object.keys(grupos).sort((a,b)=>grupos[a].ordenF-grupos[b].ordenF);
   if(!fams.length && !cajas.length) return '<div class="no-res">No hay productos.</div>';
+  // Color de barra según la categoría de los tonos (sin amoniaco = verde).
+  const cardConCat = cards.find(c=>c && c.categoria_slug) || cards[0];
+  const barCls = barClassDeCategoria(cardConCat && cardConCat.categoria_slug);
   let h='';
   // Las cajas de colección (con su portada) van primero, como tarjetas normales.
   if(cajas.length){ h+='<div class="pgrid">'+cajas.map(makeCard).join('')+'</div>'; }
   fams.forEach(fam=>{
     const tonos=grupos[fam].tonos.sort((a,b)=>a.ordenT-b.ordenT);
     // Cada tono se pinta con la MISMA tarjeta de siempre (makeCard) → igual tamaño
-    h+='<div class="ccf"><div class="ccf-h">'+ccEsc(fam)+'</div><div class="pgrid">';
+    h+='<div class="ccf '+barCls+'"><div class="ccf-h">'+ccEsc(fam)+'</div><div class="pgrid">';
     h+=tonos.map(t=>makeCard(t.card)).join('');
     h+='</div></div>';
   });
   return h;
 }
+// ── TONOS DE UNA COLECCIÓN DE TINTURA MATIZZE, EN TARJETAS GRANDES POR FAMILIA ──
+// Se usa al ABRIR la portada de la colección: muestra los tonos en cuadrícula
+// (tarjetas completas, iguales a la vista general) agrupados bajo las barras
+// moradas por familia (Naturales, Cenizos, etc.). Cada tarjeta abre el detalle
+// del tono. Es lo que se ve en la imagen que pidió el dueño.
+function tonoCardGrande(pi){
+  const fbImg = (IMG.tinte && IMG.tinte[0]) || (IMG.esmalte && IMG.esmalte[0]) || '';
+  const pres = pi.presentaciones && pi.presentaciones[0];
+  const img = (pi.imagen_principal && pi.imagen_principal.trim()) ? pi.imagen_principal.trim()
+            : (pres && pres.imagen_url && pres.imagen_url.trim()) ? pres.imagen_url.trim()
+            : fbImg;
+  const nombre = ccEsc(pi.nombre || '');
+  const idEsc = ccEsc(String(pi.id));
+  return `<div class="pc" onclick="abrirDetalleTono('${idEsc}')">
+    <div class="pc-img">
+      <img src="${img}" alt="${nombre}" loading="lazy" onerror="this.src='${fbImg}'">
+      <span class="pc-tag tmat">MATIZZE</span>
+    </div>
+    <div class="pc-body">
+      <div class="pc-brand mat">MATIZZE</div>
+      <div class="pc-name">${nombre}</div>
+      <div class="pc-foot">
+        <span class="pc-price">Consultar</span>
+        <button class="pc-add" onclick="event.stopPropagation(); abrirDetalleTono('${idEsc}')">+</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderFamiliaCardsGrid(productosIndividuales){
+  const grupos = {};
+  productosIndividuales.forEach(pi => {
+    const info = famDePI(pi); if(!info) return;
+    if(!grupos[info.familia]) grupos[info.familia] = { ordenF: info.ordenF, tonos: [] };
+    grupos[info.familia].tonos.push({ pi, ordenT: info.ordenT });
+  });
+  const sinFam = productosIndividuales.filter(pi => !famDePI(pi));
+  const fams = Object.keys(grupos).sort((a,b) => grupos[a].ordenF - grupos[b].ordenF);
+  // Color de barra según la categoría de la colección (sin amoniaco = verde).
+  const piConCat = productosIndividuales.find(pi=>pi && pi.categoria_slug) || productosIndividuales[0];
+  const barCls = barClassDeCategoria(piConCat && piConCat.categoria_slug);
+  let h = '<div class="pgrid pgrid-cc">';
+  fams.forEach(fam => {
+    const tonos = grupos[fam].tonos.sort((a,b) => a.ordenT - b.ordenT);
+    h += '<div class="ccf '+barCls+'"><div class="ccf-h">'+ccEsc(fam)+'</div><div class="pgrid">'
+       + tonos.map(t => tonoCardGrande(t.pi)).join('') + '</div></div>';
+  });
+  if (sinFam.length){
+    h += '<div class="pgrid">' + sinFam.map(tonoCardGrande).join('') + '</div>';
+  }
+  h += '</div>';
+  return h;
+}
 async function cargarFamiliasTinte(){
   try{
+    // select('*') para tolerar columnas nuevas (ej. categoria_slug) sin romper.
     const { data } = await sb.from('tinte_familias')
-      .select('codigo,nombre_tono,familia,orden_familia,orden_tono,marca_slug')
+      .select('*')
       .eq('marca_slug','matizze');
     if(Array.isArray(data) && data.length){
+      // Organizado por CATEGORÍA: FAM_TINTE[categoria_slug][codigo] = {...}.
+      // Las filas sin categoria_slug van a '__any__' (compatibilidad con la
+      // tintura original). Así tintura y sin-amoniaco no se pisan aunque
+      // compartan códigos (ej. 5.0 en ambas), y cada una lleva su color de barra.
       const m={};
-      data.forEach(r=>{ m[String(r.codigo)]={ familia:r.familia, nombre:r.nombre_tono, ordenF:r.orden_familia||0, ordenT:r.orden_tono||0 }; });
+      data.forEach(r=>{
+        const cat=(r.categoria_slug||'').toString().toLowerCase().trim() || '__any__';
+        if(!m[cat]) m[cat]={};
+        m[cat][String(r.codigo)]={ familia:r.familia, nombre:r.nombre_tono, ordenF:r.orden_familia||0, ordenT:r.orden_tono||0 };
+      });
       FAM_TINTE=m;
       try{ applyFilters(); }catch(e){}   // re-pinta si ya estaba en esa categoría
     }
@@ -2693,7 +2772,13 @@ function openLB(idx){
   // toggle del admin) se muestran como un CARRUSEL de productos.
   const catSlugLB = (p.categoria_slug || '').toLowerCase();
   const esEsmalteCat = catSlugLB === 'esmaltes';
-  const esCajaProductos = esColeccion && !esEsmalteCat;
+  // ¿Colección de tintura Matizze (sus tonos están mapeados en tinte_familias)?
+  // Si es así, al abrir la portada NO se muestra un carrusel: se muestra la
+  // MISMA cuadrícula por familias (barras moradas) de la vista general.
+  const tonesPICol = esColeccion ? p.productosInternos.map(id=>PI.find(x=>x.id===id)).filter(Boolean) : [];
+  const conFamCol = tonesPICol.filter(pi=>famDePI(pi)).length;
+  const esColeccionFamilia = esColeccion && tonesPICol.length>=3 && conFamCol >= Math.ceil(tonesPICol.length*0.6);
+  const esCajaProductos = esColeccion && !esEsmalteCat && !esColeccionFamilia;
   lbBoxMode = false;
   lbBoxProds = [];
 
@@ -2807,6 +2892,13 @@ function openLB(idx){
     const productosIndividuales = PI.filter(pi => p.productosInternos.includes(pi.id));
 
     if (productosIndividuales.length >= 1){
+      if (esColeccionFamilia){
+        // Colección de tintura Matizze → cuadrícula por familias con TARJETAS
+        // grandes (barras moradas), igual que la vista general. Cada tarjeta abre
+        // el detalle del tono. (Las de esmaltes/CHECO siguen con chips, abajo.)
+        lbTonoGrid = true;
+        lbVarsEl.innerHTML = renderFamiliaCardsGrid(productosIndividuales);
+      } else {
       // TODAS las colecciones se muestran como cuadrícula de tonos (chips de color)
       // Constructor de una tarjeta de tono (chip) — EXACTAMENTE el de siempre.
       const toneCard = (pi) => {
@@ -2883,6 +2975,7 @@ function openLB(idx){
            }).join('') +
            `</div>
          </div>`;
+      }
     } else {
       // No tienen colores → usar las vars normales
       lbVarsEl.innerHTML = p.vars.map((v,i)=>`<div class="lv${i===0?' on':''}" onclick="selV(this)">${v}</div>`).join('');
