@@ -261,11 +261,14 @@ body{
    Ocupa casi toda la pantalla. Alto en 'vh' = dinámico: se ajusta a cada tablet
    (la de la clienta, más pequeña, lo reduce solo). Los !important ganan también
    sobre las reglas de tablet. */
-.pc.pc-hero{grid-column:1 / -1 !important;display:block !important;min-height:0 !important}
-.pc.pc-hero .pc-img{aspect-ratio:auto !important;height:64vh !important;min-height:300px !important;max-height:80vh !important;width:100% !important}
-.pc.pc-hero .pc-img img{height:100% !important;width:100% !important;object-fit:cover !important}
-.pc.pc-hero .pc-body{display:block !important;padding:16px 16px 18px !important}
-.pc.pc-hero .pc-name{font-size:1.2rem !important;margin-bottom:8px !important}
+/* Selectores con .wide.pc-hero (más específicos) para GANARLE a las reglas de
+   tablet (.pc.wide{...}). Full-width real, imagen arriba (rellena sola con
+   object-fit:cover, cualquier formato), y ABAJO el nombre + "Consultar" + botón. */
+.pgrid .pc.wide.pc-hero{grid-column:1 / -1 !important;display:block !important;min-height:0 !important;grid-template-columns:none !important}
+.pgrid .pc.wide.pc-hero .pc-img{aspect-ratio:auto !important;height:54vh !important;min-height:280px !important;max-height:72vh !important;width:100% !important}
+.pgrid .pc.wide.pc-hero .pc-img img{height:100% !important;width:100% !important;object-fit:cover !important}
+.pgrid .pc.wide.pc-hero .pc-body{display:block !important;padding:14px 16px 18px !important}
+.pgrid .pc.wide.pc-hero .pc-name{font-size:1.25rem !important;margin-bottom:8px !important}
 
 /* ── SOLO MÓVIL — colecciones que NO son de Esmaltes se muestran angostas
    (1 columna de la grilla de 2), con el layout normal de tarjeta.
@@ -1725,14 +1728,26 @@ window.addEventListener('load', function(){ SJMx.cargarGeo().finally(function(){
 // ══════════════════════════════════════════════════════════════════
 let P = [];   // Tarjetas agrupadas que ve el cliente en el grid
 let PI = [];  // Productos individuales completos (con presentaciones, colores hex, etc.)
-let AGOTADOS = new Set(); // ids (texto) de productos marcados como agotados (tabla productos_agotado)
+let AGOTADOS = new Set(); // llaves 'producto_id||presentacion' agotadas ('' = producto entero)
 let ZOOM = new Set();     // ids (texto) de productos con zoom activado (tabla productos_zoom)
+const AG_SEP='||';
+function agKey(pid,pres){ return String(pid)+AG_SEP+(pres||''); }
+function agProdEntero(pid){ return AGOTADOS.has(agKey(pid,'')); }
+// ¿Está agotada ESTA presentación? (o el producto entero)
+function agPresAgotada(pid, presNombre){ return agProdEntero(pid) || AGOTADOS.has(agKey(pid, presNombre||'')); }
+// ¿Producto TOTALMENTE agotado? (entero, o TODAS sus presentaciones)
+function agProductoTotal(pid){
+  if(agProdEntero(pid)) return true;
+  const pi = PI.find(x=>String(x.id)===String(pid));
+  const pres = pi && Array.isArray(pi.presentaciones) ? pi.presentaciones : [];
+  return pres.length ? pres.every(pr => AGOTADOS.has(agKey(pid, pr.nombre||''))) : false;
+}
 function tieneZoom(piId){ return ZOOM.has(String(piId)); }
-function esAgotado(piId){ return AGOTADOS.has(String(piId)); }
+function esAgotado(piId){ return agProductoTotal(piId); }
 function cardAgotado(card){
   const ids = Array.isArray(card && card.productosInternos) ? card.productosInternos : [];
   if(!ids.length) return false;
-  return ids.every(id => AGOTADOS.has(String(id)));   // la caja/tarjeta se marca solo si TODO está agotado
+  return ids.every(id => agProductoTotal(id));   // la caja/tarjeta se marca solo si TODO está agotado
 }
 let MARCAS_META = {}; // Detalles de marca (emoji/eslogan/color/desc) leídos de la tabla marcas, indexados por slug
 let CATEGORIAS_ORDEN = {}; // slug de categoría → número de orden (definido en el admin)
@@ -1845,8 +1860,8 @@ async function loadFromSupabase(){
 
     // ── AGOTADOS: leemos la tabla propia (no toca productos ni la vista) ──
     try{
-      const { data: ago } = await sb.from('productos_agotado').select('producto_id');
-      AGOTADOS = new Set((ago || []).map(x => String(x.producto_id)));
+      const { data: ago } = await sb.from('productos_agotado').select('producto_id,presentacion');
+      AGOTADOS = new Set((ago || []).map(x => agKey(x.producto_id, x.presentacion||'')));
     }catch(e){ /* si falla, se queda como esté; nada se rompe */ }
 
     // ── ZOOM: productos donde el admin activó ampliar imagen (tabla propia) ──
@@ -2899,15 +2914,19 @@ function openLB(idx){
     lbPresList = presIndiv.map((pr,i)=>{
       const etiqueta = pr.nombre ? (/^\d+$/.test(String(pr.nombre).trim()) ? pr.nombre+' ml' : pr.nombre) : (pr.volumen_ml ? pr.volumen_ml+' ml' : 'Opción '+(i+1));
       const img = (pr.imagen_url && pr.imagen_url.trim()) ? pr.imagen_url.trim() : _fb;
-      return { label:etiqueta, key:'p:'+_pid+'::'+etiqueta, img:img, name:_nom, brand:_marca };
+      // ¿Esta presentación está agotada? (por nombre, o el producto entero)
+      const agotada = agPresAgotada(_pid, pr.nombre||'');
+      return { label:etiqueta, key:'p:'+_pid+'::'+etiqueta, img:img, name:_nom, brand:_marca, agotada:agotada };
     });
     // Con VARIAS presentaciones (y que NO sea esmalte) arrancamos con un
     // placeholder "Elige una opción": ninguna presentación marcada, y el
     // carrusel muestra la portada hasta que el cliente elija una.
     lbSelUsaPlaceholder = (!esEsmalteCat && presIndiv.length > 1);
+    // Primera presentación NO agotada (para auto-seleccionar sin placeholder).
+    const _firstOk = lbPresList.findIndex(x=>!x.agotada);
     lbVarsEl.innerHTML = '<div class="lb-selwrap"><select class="lb-sel" id="lbSel" onchange="lbSelChange()">'
       + (lbSelUsaPlaceholder ? '<option value="" disabled selected>Elige una opción</option>' : '')
-      + lbPresList.map((info,i)=>`<option value="${i}"${(!lbSelUsaPlaceholder && i===0)?' selected':''}>${info.label}</option>`).join('')
+      + lbPresList.map((info,i)=>`<option value="${i}"${info.agotada?' disabled':''}${(!lbSelUsaPlaceholder && i===(_firstOk<0?0:_firstOk))?' selected':''}>${info.label}${info.agotada?' — AGOTADO':''}</option>`).join('')
       + '</select><span class="lb-chev">▼</span></div>';
     lbHasQty = true;
   } else if (p.productosInternos && p.productosInternos.length > 0 && PI.length > 0){
@@ -3630,8 +3649,11 @@ function lbAddCart(){
   const b=document.getElementById('lbCartB');
   const qty = lbGetQty();
   if(lbHasQty && lbPresList.length){
-    const s=document.getElementById('lbSel'); const i=s?parseInt(s.value,10)||0:0;
+    const s=document.getElementById('lbSel');
+    if(s && s.value===''){ b.innerHTML='Elige una opción'; setTimeout(()=>{b.innerHTML='🛒 Agregar al pedido'},1400); return; }
+    const i=s?parseInt(s.value,10)||0:0;
     const info=lbPresList[i]; if(!info) return;
+    if(info.agotada){ b.innerHTML='Presentación agotada'; b.classList.remove('ok'); setTimeout(()=>{b.innerHTML='🛒 Agregar al pedido'},1500); return; }
     const ex=cartItems.find(c=>c.id===info.key);
     if(ex){ ex.qty+=qty; } else { cartItems.push({id:info.key, name:info.name, brand:info.brand, img:info.img, variant:info.label, qty:qty}); }
     trackEvento('agregar_carrito', { producto_nombre:info.name, marca:info.brand, meta:{ presentacion:info.label, cantidad:qty } });
