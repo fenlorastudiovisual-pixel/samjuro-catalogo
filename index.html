@@ -1730,9 +1730,12 @@ let P = [];   // Tarjetas agrupadas que ve el cliente en el grid
 let PI = [];  // Productos individuales completos (con presentaciones, colores hex, etc.)
 let AGOTADOS = new Set(); // llaves 'producto_id||presentacion' agotadas ('' = producto entero)
 let ZOOM = new Set();     // ids (texto) de productos con zoom activado (tabla productos_zoom)
+let STOCK = {};           // producto_id -> stock (tabla inventario). Ausente = no rastreado.
 const AG_SEP='||';
 function agKey(pid,pres){ return String(pid)+AG_SEP+(pres||''); }
-function agProdEntero(pid){ return AGOTADOS.has(agKey(pid,'')); }
+// Stock 0 = agotado automático (solo si el producto tiene inventario registrado).
+function stockAgotado(pid){ const s=STOCK[String(pid)]; return (s!==undefined && s!==null && Number(s)<=0); }
+function agProdEntero(pid){ return AGOTADOS.has(agKey(pid,'')) || stockAgotado(pid); }
 // ¿Está agotada ESTA presentación? (o el producto entero)
 function agPresAgotada(pid, presNombre){ return agProdEntero(pid) || AGOTADOS.has(agKey(pid, presNombre||'')); }
 // ¿Producto TOTALMENTE agotado? (entero, o TODAS sus presentaciones)
@@ -1835,6 +1838,7 @@ function activarRealtime(){
     .on('postgres_changes', { event: '*', schema: 'public', table: 'promociones' }, recargarPronto)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracion' }, recargarPronto)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'productos_agotado' }, recargarPronto)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'inventario' }, recargarPronto)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'productos_zoom' }, recargarPronto)
     .subscribe((estado) => {
       console.log('📡 Realtime:', estado);
@@ -1862,6 +1866,11 @@ async function loadFromSupabase(){
     try{
       const { data: ago } = await sb.from('productos_agotado').select('producto_id,presentacion');
       AGOTADOS = new Set((ago || []).map(x => agKey(x.producto_id, x.presentacion||'')));
+      // ── INVENTARIO: stock por producto (0 = agotado automático) ──
+      try{
+        const { data: inv } = await sb.from('inventario').select('producto_id,stock');
+        STOCK = {}; (inv || []).forEach(r => { STOCK[String(r.producto_id)] = Number(r.stock); });
+      }catch(e){ /* si no existe la tabla aún, no pasa nada */ }
     }catch(e){ /* si falla, se queda como esté; nada se rompe */ }
 
     // ── ZOOM: productos donde el admin activó ampliar imagen (tabla propia) ──
