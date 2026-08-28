@@ -2813,6 +2813,15 @@ function openLB(idx){
       presIndivPi = pi;
     }
   }
+  // ¿Alguna presentación tiene imagen DISTINTA de la portada? Entonces, aunque sea
+  // una sola presentación, se comporta como las de varias: carrusel + "Elige una opción".
+  let hayPresDistinta = false;
+  if (presIndiv){
+    const _principalTop = (p.imgsReales && p.imgsReales[0]) ? String(p.imgsReales[0]).trim() : '';
+    hayPresDistinta = presIndiv.some(pr => { const u=(pr.imagen_url&&pr.imagen_url.trim())?pr.imagen_url.trim():''; return u && u !== _principalTop; });
+  }
+  // Trata como "multi" (montaje + elegir opción) si hay varias presentaciones O una con imagen distinta.
+  const usaMontaje = !!presIndiv && (presIndiv.length > 1 || hayPresDistinta);
 
   // ¿Es una colección? (caja con varios productos)
   const esColeccion = p.productosInternos && p.productosInternos.length > 1;
@@ -2859,9 +2868,9 @@ function openLB(idx){
       }).join('');
     document.getElementById('lbDots').innerHTML =
       presIndiv.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
-  } else if (presIndiv && presIndiv.length > 1){
-    // NO-esmalte con VARIAS presentaciones (ej. Removedores):
-    // ORDEN: 1) imagen principal (montaje), 2) cada presentación, 3) galería adicional.
+  } else if (usaMontaje){
+    // NO-esmalte con VARIAS presentaciones (o UNA con imagen distinta a la portada):
+    // ORDEN: 1) imagen principal (montaje/portada), 2) cada presentación, 3) galería adicional.
     const fallback = (p.imgsReales && p.imgsReales[0]) ? p.imgsReales[0] : p.imgs[0];
     const principal = (p.imgsReales && p.imgsReales[0]) ? p.imgsReales[0] : null;
     const galeria = (p.imgsReales && p.imgsReales.length > 1) ? p.imgsReales.slice(1) : [];
@@ -2877,12 +2886,13 @@ function openLB(idx){
     document.getElementById('lbDots').innerHTML =
       fuente.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
   } else if (presIndiv){
-    // NO-esmalte con UNA sola presentación (ej. Base de Calcio):
-    // el carrusel usa las fotos propias del producto (imagen principal + galería)
-    // Y ADEMÁS la imagen de la presentación, para que se vean AMBAS (portada + presentación).
+    // NO-esmalte con UNA sola presentación cuya imagen es IGUAL a la portada
+    // (o sin imagen propia): una sola imagen, sin carrusel ni "elige una opción".
     const fallback = p.imgs[0];
     let fuente = (p.imgsReales && p.imgsReales.length > 0) ? p.imgsReales.slice() : [];
-    presIndiv.forEach(pr => { const u = (pr.imagen_url && pr.imagen_url.trim()) ? pr.imagen_url.trim() : ''; if (u && fuente.indexOf(u) < 0) fuente.push(u); });
+    if (fuente.length === 0){
+      fuente = presIndiv.map(pr => (pr.imagen_url && pr.imagen_url.trim()) ? pr.imagen_url.trim() : fallback);
+    }
     if (fuente.length === 0) fuente = [fallback];
     document.getElementById('lbSlides').innerHTML =
       fuente.map(src=>`<div class="lb-slide"><img src="${src}" alt="" onerror="this.src='${fallback}'"></div>`).join('');
@@ -2931,7 +2941,7 @@ function openLB(idx){
     // Con VARIAS presentaciones (y que NO sea esmalte) arrancamos con un
     // placeholder "Elige una opción": ninguna presentación marcada, y el
     // carrusel muestra la portada hasta que el cliente elija una.
-    lbSelUsaPlaceholder = (!esEsmalteCat && presIndiv.length > 1);
+    lbSelUsaPlaceholder = (!esEsmalteCat && (presIndiv.length > 1 || hayPresDistinta));
     // Primera presentación NO agotada (para auto-seleccionar sin placeholder).
     const _firstOk = lbPresList.findIndex(x=>!x.agotada);
     lbVarsEl.innerHTML = '<div class="lb-selwrap"><select class="lb-sel" id="lbSel" onchange="lbSelChange()">'
