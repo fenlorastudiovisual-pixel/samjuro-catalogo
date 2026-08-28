@@ -2878,12 +2878,11 @@ function openLB(idx){
       fuente.map((_,i)=>`<div class="ld${i===0?' on':''}" onclick="goSlide(${i})"></div>`).join('');
   } else if (presIndiv){
     // NO-esmalte con UNA sola presentación (ej. Base de Calcio):
-    // el carrusel usa las fotos propias del producto (imagen principal + galería).
+    // el carrusel usa las fotos propias del producto (imagen principal + galería)
+    // Y ADEMÁS la imagen de la presentación, para que se vean AMBAS (portada + presentación).
     const fallback = p.imgs[0];
     let fuente = (p.imgsReales && p.imgsReales.length > 0) ? p.imgsReales.slice() : [];
-    if (fuente.length === 0){
-      fuente = presIndiv.map(pr => (pr.imagen_url && pr.imagen_url.trim()) ? pr.imagen_url.trim() : fallback);
-    }
+    presIndiv.forEach(pr => { const u = (pr.imagen_url && pr.imagen_url.trim()) ? pr.imagen_url.trim() : ''; if (u && fuente.indexOf(u) < 0) fuente.push(u); });
     if (fuente.length === 0) fuente = [fallback];
     document.getElementById('lbSlides').innerHTML =
       fuente.map(src=>`<div class="lb-slide"><img src="${src}" alt="" onerror="this.src='${fallback}'"></div>`).join('');
